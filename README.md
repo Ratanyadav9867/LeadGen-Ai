@@ -186,22 +186,24 @@ npm run dev
 
 - 📖 **[Installation Guide](docs/installation.md)**: Full local setup walkthrough for Windows.
 - ⚙️ **[Environment Configuration Guide](docs/environment-configuration.md)**: Details on all `.env` options and Gemini model configuration.
+- 🤖 **[Google Gemini AI Integration Guide](docs/GEMINI_SETUP.md)**: AI Studio key setup, prompt guardrails, and structured output.
+- ✉️ **[Gmail OAuth & Email Delivery Guide](docs/GMAIL_SETUP.md)**: Gmail API OAuth setup, duplicate-send protection, and error handling.
 - 🌐 **[Google APIs & Workspace Guide](docs/google-api-setup.md)**: Setting up Google Forms, Google Sheets headers, and Google Cloud OAuth credentials.
-- 🔄 **[n8n Workflow Setup Guide](docs/n8n-workflow-setup.md)**: How to import `automation/n8n_leadgen_workflow.json` and configure nodes.
-- 🧪 **[Testing & Verification Guide](docs/testing-guide.md)**: Procedures for executing backend test suites, frontend builds, and live simulation.
-- 🎬 **[Three-Minute Assessment Video Script](docs/demo-script.md)**: Scene-by-scene script for recording the assessment video.
+- 🔄 **[n8n Workflow Setup Guide](docs/n8n-workflow-setup.md)**: How to import `automation/workflows/lead-capture-workflow.json` and configure nodes.
+- 🧪 **[End-to-End Testing & Verification Report](docs/END_TO_END_TESTING.md)**: Full integration verification and 46 automated test results.
+- 🎬 **[Assessment Video Demonstration Script](docs/demo-script.md)**: Scene-by-scene script for assessment presentation.
 
 ---
 
 ## 🧪 Automated Testing & Quality Verification
 
-### 1. Run Backend Pytest Suite
+### 1. Run Complete Backend Pytest Suite (46 Tests)
 ```powershell
 cd backend
 .\venv\Scripts\Activate.ps1
 pytest -v
 ```
-*(Result: 8 passing integration tests verifying health, lead CRUD, AI scoring, status patching, webhook ingestion, and duplicate prevention).*
+*(Result: 46 passing integration tests verifying health, lead CRUD, Gemini AI personalization, Gmail OAuth delivery, duplicate prevention, and end-to-end pipeline synchronization).*
 
 ### 2. Verify Frontend Production Build
 ```powershell

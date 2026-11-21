@@ -29,6 +29,8 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<PriorityLevel | 'All'>(initialPriorityFilter);
   const [statusFilter, setStatusFilter] = useState<EmailDeliveryStatus | 'All'>('All');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
@@ -41,6 +43,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       search: search.trim() || undefined,
     });
     setLeads(res.leads);
+    setCurrentPage(1);
     setLoading(false);
   };
 
@@ -59,6 +62,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     const timeB = new Date(b.created_at).getTime();
     return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
   });
+
+  const totalPages = Math.ceil(sortedLeads.length / pageSize) || 1;
+  const paginatedLeads = sortedLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6">
@@ -128,9 +134,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700"
             >
               <option value="All">All Statuses</option>
-              <option value="Pending">Pending</option>
+              <option value="Draft">Draft / Not Sent</option>
               <option value="Sent">Sent</option>
+              <option value="Pending">Pending</option>
               <option value="Failed">Failed</option>
+              <option value="Delivery Unknown">Delivery Unknown</option>
             </select>
           </div>
 
@@ -177,7 +185,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {sortedLeads.map(lead => (
+                  {paginatedLeads.map(lead => (
                     <tr
                       key={lead.id}
                       onClick={() => setSelectedLead(lead)}
@@ -214,7 +222,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
           {/* Mobile Friendly Card Layout */}
           <div className="grid grid-cols-1 gap-3 md:hidden">
-            {sortedLeads.map(lead => (
+            {paginatedLeads.map(lead => (
               <div
                 key={lead.id}
                 onClick={() => setSelectedLead(lead)}
@@ -245,6 +253,51 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               </div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs text-slate-600">
+              <div>
+                Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-semibold text-slate-900">{Math.min(currentPage * pageSize, sortedLeads.length)}</span> of{' '}
+                <span className="font-semibold text-slate-900">{sortedLeads.length}</span> leads
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-7 h-7 rounded-lg font-semibold text-xs transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

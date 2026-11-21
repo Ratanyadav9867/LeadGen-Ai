@@ -28,6 +28,8 @@ def get_leads(
     priority: Optional[str] = Query(None, description="Filter by priority: High, Medium, Low"),
     email_status: Optional[str] = Query(None, description="Filter by email status: Pending, Sent, Failed"),
     search: Optional[str] = Query(None, description="Search by name, company, or email"),
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(100, ge=1, le=500, description="Maximum items per page"),
     db: Session = Depends(get_db)
 ):
     query = db.query(Lead)
@@ -47,7 +49,7 @@ def get_leads(
             (Lead.service.ilike(search_fmt))
         )
 
-    return query.order_by(Lead.created_at.desc()).all()
+    return query.order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
