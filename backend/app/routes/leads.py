@@ -79,6 +79,31 @@ def get_lead_stats(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/check-duplicate")
+def check_duplicate_lead(
+    email: str = Query(..., description="Email to check for duplication"),
+    db: Session = Depends(get_db)
+):
+    norm_email = email.strip().lower()
+    lead = db.query(Lead).filter(Lead.email.ilike(norm_email)).first()
+    if lead:
+        return {
+            "is_duplicate": True,
+            "lead_id": lead.id,
+            "email": lead.email,
+            "name": lead.name,
+            "company": lead.company,
+            "created_at": lead.created_at.isoformat() if lead.created_at else None,
+            "email_status": lead.email_status,
+            "priority": lead.priority
+        }
+    return {
+        "is_duplicate": False,
+        "lead_id": None,
+        "email": norm_email
+    }
+
+
 @router.get("/{lead_id}", response_model=LeadResponse)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()

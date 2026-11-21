@@ -40,6 +40,8 @@ def root():
         "stats": "/api/leads/stats",
         "integrations": "/api/integrations/status",
         "emails": "/api/integrations/emails",
+        "lead_capture": "/api/automation/lead-capture",
+        "check_duplicate": "/api/leads/check-duplicate",
         "webhook": "/api/automation/webhook",
         "docs": "/docs"
     }

@@ -54,3 +54,4 @@ N8N_WEBHOOK_URL=http://localhost:5678/webhook/leads
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Backend REST API base URL |
 
 *(Note: In Vite development, requests to `/api` are also reverse-proxied by `vite.config.ts` to `http://127.0.0.1:8000` for zero CORS friction).*
+

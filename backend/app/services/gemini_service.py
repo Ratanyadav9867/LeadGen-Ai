@@ -146,3 +146,4 @@ Evaluate this lead according to the instructions and return the structured JSON 
         fallback = _generate_fallback_analysis(lead_data)
         fallback["error"] = str(exc)
         return fallback
+

@@ -65,3 +65,4 @@ To allow n8n to send outreach emails via Gmail:
    - Name: `n8n OAuth Client`.
    - Authorized redirect URIs: Enter the redirect URI provided by your n8n instance (e.g. `https://your-n8n.app/rest/oauth2-credential/callback` or `http://localhost:5678/rest/oauth2-credential/callback`).
 6. Copy the **Client ID** and **Client Secret** into your n8n Gmail and Google Sheets credentials.
+

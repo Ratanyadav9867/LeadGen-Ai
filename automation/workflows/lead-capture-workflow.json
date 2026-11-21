@@ -1,0 +1,358 @@
+{
+  "name": "LeadGen AI - Phase 4 Lead Capture Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "node-1-sheets-trigger",
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        320
+      ],
+      "notes": "Triggers on newly appended row in linked Google Form response spreadsheet. Do not hardcode credentials."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 2: Normalize Lead Data\n// Extracts variations of form headers, trims whitespace, converts email to lowercase, and preserves row number.\nconst item = $input.first().json;\n\n// Helper to retrieve case-insensitive matching fields\nfunction getField(keys, defaultVal = '') {\n  for (const k of keys) {\n    if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') {\n      return String(item[k]).trim();\n    }\n  }\n  return defaultVal;\n}\n\nconst rawName = getField(['Full Name', 'Name', 'Lead Name', 'name', 'full_name']);\nconst rawEmail = getField(['Email Address', 'Email', 'email', 'email_address']);\nconst rawCompany = getField(['Company / Organization', 'Company', 'Organization', 'company', 'organization'], 'Independent Client');\nconst rawPhone = getField(['Phone Number', 'Phone', 'phone', 'contact_number'], '');\nconst rawService = getField(['Service Required', 'Service', 'service', 'service_required'], 'AI Workflow Automation');\nconst rawBudget = getField(['Estimated Budget', 'Budget', 'Budget Range', 'budget', 'budget_range'], '$5,000 - $10,000');\nconst rawDescription = getField(['Project Scope / Description', 'Project Scope', 'Description', 'description', 'notes'], '');\nconst existingStatus = getField(['Processing Status', 'Status', 'status'], '');\n\n// Row number preserved for Google Sheets update targeting\nconst rowNumber = item.__rowNum__ || item.row_number || item['Row Number'] || item.__row_index || null;\n\nreturn [{\n  json: {\n    name: rawName,\n    email: rawEmail.toLowerCase(),\n    company: rawCompany,\n    phone: rawPhone || null,\n    service: rawService,\n    budget: rawBudget,\n    description: rawDescription,\n    row_number: rowNumber,\n    existing_status: existingStatus,\n    raw_input: item\n  }\n}];"
+      },
+      "id": "node-2-normalize-lead",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        320
+      ],
+      "notes": "Trims whitespace, normalizes email to lowercase, and preserves spreadsheet row number"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 3: Validate Lead Data\n// Enforces non-empty name and RFC-5322 compliant email structure.\nconst item = $input.first().json;\n\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst hasName = item.name && item.name.length >= 2;\nconst hasValidEmail = item.email && emailRegex.test(item.email);\n\nlet validationError = null;\nif (!hasName) {\n  validationError = 'Missing or invalid full name (minimum 2 characters required)';\n} else if (!hasValidEmail) {\n  validationError = `Invalid email address format: '${item.email}'`;\n}\n\nif (validationError) {\n  return [{\n    json: {\n      ...item,\n      is_valid: false,\n      error_reason: validationError\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    is_valid: true,\n    error_reason: null\n  }\n}];"
+      },
+      "id": "node-3-validate-lead",
+      "name": "Validate Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_valid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-4-if-valid",
+      "name": "Is Data Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        840,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8000/api/leads/check-duplicate?email={{ encodeURIComponent($json.email) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-5-check-duplicate",
+      "name": "Check Duplicate in FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1060,
+        240
+      ],
+      "notes": "Queries FastAPI database to verify if email already exists"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_duplicate }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "node-6-if-not-duplicate",
+      "name": "Is Not Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/automation/lead-capture",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Normalize Lead Data').item.json.name }}\",\n  \"email\": \"{{ $('Normalize Lead Data').item.json.email }}\",\n  \"company\": \"{{ $('Normalize Lead Data').item.json.company }}\",\n  \"phone\": {{ $('Normalize Lead Data').item.json.phone ? '\"' + $('Normalize Lead Data').item.json.phone + '\"' : 'null' }},\n  \"service\": \"{{ $('Normalize Lead Data').item.json.service }}\",\n  \"budget\": \"{{ $('Normalize Lead Data').item.json.budget }}\",\n  \"description\": \"{{ $('Normalize Lead Data').item.json.description }}\",\n  \"spreadsheet_row\": {{ $('Normalize Lead Data').item.json.row_number || 'null' }}\n}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "node-7-fastapi-lead-capture",
+      "name": "FastAPI Ingestion (lead-capture)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1500,
+        180
+      ],
+      "notes": "Submits validated lead to FastAPI SQLite database without triggering emails"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Processing Status",
+              "fieldValue": "Processing"
+            },
+            {
+              "fieldId": "Lead ID",
+              "fieldValue": "={{ $json.lead_id }}"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-8-sheets-update-success",
+      "name": "Google Sheets Update (Success)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1720,
+        180
+      ],
+      "notes": "Updates spreadsheet row with Processing status and Lead ID"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Processing Status",
+              "fieldValue": "Duplicate / Skipped"
+            },
+            {
+              "fieldId": "Lead ID",
+              "fieldValue": "={{ $json.lead_id }}"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-9-sheets-update-duplicate",
+      "name": "Google Sheets Update (Duplicate)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1500,
+        340
+      ],
+      "notes": "Marks duplicate row to prevent duplicate lead processing"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Processing Status",
+              "fieldValue": "Failed / Invalid"
+            },
+            {
+              "fieldId": "Error Reason",
+              "fieldValue": "={{ $json.error_reason || 'Validation error' }}"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-10-sheets-update-invalid",
+      "name": "Google Sheets Update (Invalid)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1060,
+        480
+      ],
+      "notes": "Logs validation failure reasons to spreadsheet for manual correction"
+    }
+  ],
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead": {
+      "main": [
+        [
+          {
+            "node": "Is Data Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Data Valid?": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate in FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets Update (Invalid)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate in FastAPI": {
+      "main": [
+        [
+          {
+            "node": "Is Not Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Not Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "FastAPI Ingestion (lead-capture)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets Update (Duplicate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FastAPI Ingestion (lead-capture)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Update (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

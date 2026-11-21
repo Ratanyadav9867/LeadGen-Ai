@@ -22,3 +22,4 @@
 2. **Audio**: Use a dedicated microphone with low background noise.
 3. **Pacing**: Speak at an energetic, conversational, professional pace.
 4. **Browser**: Have both `http://localhost:5173` and `http://127.0.0.1:8000/docs` pre-opened in Chrome tabs before starting.
+

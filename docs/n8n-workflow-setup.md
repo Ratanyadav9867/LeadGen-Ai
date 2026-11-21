@@ -71,3 +71,4 @@ Access the n8n web editor at: `http://localhost:5678`
    - Green checks will light up sequentially across Trigger ➔ Validation ➔ Gemini ➔ Gmail ➔ Sheets.
    - The prospect will receive a personalized email in their inbox within seconds.
    - The CRM dashboard at `http://localhost:5173/leads` will immediately reflect the new lead.
+
