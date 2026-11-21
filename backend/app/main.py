@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routes import health, leads, integrations
+from app.routes import health, leads, integrations, webhook
 
 # Create tables in SQLite on startup
 Base.metadata.create_all(bind=engine)
@@ -10,7 +10,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="LeadGen AI - AI-powered Lead Management & Automated Follow-Up CRM",
+    description="LeadGen AI - Intelligent Lead Management & Automated Follow-Up System",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(leads.router, prefix="/api")
 app.include_router(integrations.router, prefix="/api")
+app.include_router(webhook.router, prefix="/api")
 
 
 @app.get("/")
@@ -39,5 +40,6 @@ def root():
         "stats": "/api/leads/stats",
         "integrations": "/api/integrations/status",
         "emails": "/api/integrations/emails",
+        "webhook": "/api/automation/webhook",
         "docs": "/docs"
     }

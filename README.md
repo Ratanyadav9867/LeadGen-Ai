@@ -1,185 +1,224 @@
 # LeadGen AI 🚀
 
-> **AI-Powered Lead Management & Automated Follow-Up CRM**  
-> *Developed for the AI Automation Internship Assessment*
+> **Autonomous Lead Management & Intelligent Follow-Up CRM System**  
+> *Engineered for the AI Automation Internship Practical Assessment*
 
-LeadGen AI is an autonomous CRM application designed to streamline lead capture, AI qualification/scoring, and intelligent automated follow-ups across Google Workspace (Google Forms, Google Sheets, Gmail) and n8n orchestration.
+LeadGen AI is an end-to-end, production-ready lead intake and automated qualification ecosystem. It seamlessly bridges **Google Forms**, **Google Sheets**, and **Gmail** through **n8n workflow orchestration** and **Google Gemini AI**, backed by a robust **FastAPI & SQLite** backend and a modern **React + Vite + TypeScript + Tailwind CSS** SaaS CRM dashboard.
 
 ---
 
-## 🏛️ Monorepo Architecture
+## 📑 Table of Contents
+- [Project Architecture](#-project-architecture)
+- [Tech Stack Overview](#-tech-stack-overview)
+- [End-to-End Pipeline Workflow](#-end-to-end-pipeline-workflow)
+- [Quickstart Guide (PowerShell on Windows)](#-quickstart-guide-powershell-on-windows)
+- [FastAPI REST Endpoints](#-fastapi-rest-endpoints)
+- [Comprehensive Documentation Suite](#-comprehensive-documentation-suite)
+- [Automated Testing & Quality Verification](#-automated-testing--quality-verification)
+- [Security Protocol](#-security-protocol)
+
+---
+
+## 🏛️ Project Architecture
 
 ```
 LeadGen-AI/
-├── frontend/                 # React + Vite + TypeScript + Tailwind CSS UI
+├── frontend/                     # React 19 + Vite 8 + TypeScript + Tailwind CSS UI
 │   ├── src/
-│   │   ├── components/       # Header, Sidebar, HealthCard, UI components
-│   │   ├── services/         # API client & health check service
-│   │   ├── types/            # TypeScript data contracts & models
-│   │   ├── App.tsx           # Dashboard layout & live health monitor
-│   │   ├── index.css         # Tailwind CSS styling
-│   │   └── main.tsx          # React application root
-│   ├── vite.config.ts        # Vite configuration + API reverse proxy
+│   │   ├── components/           # Header, Sidebar, Badges, Modals, EmptyState
+│   │   ├── pages/                # Overview, Leads, Automation, EmailHistory, Settings
+│   │   ├── services/             # API service layer (Health, Leads, Webhooks)
+│   │   ├── data/                 # Explicitly labeled demonstration dataset
+│   │   ├── types/                # TypeScript interface contracts
+│   │   └── App.tsx               # Client-side router & layout root
+│   ├── vite.config.ts            # Tailwind v4 plugin + API reverse proxy
 │   └── package.json
-├── backend/                  # FastAPI + SQLite + SQLAlchemy API
+├── backend/                      # Python 3.11 + FastAPI + SQLAlchemy 2.0
 │   ├── app/
-│   │   ├── models/           # SQLAlchemy ORM models (Base established)
-│   │   ├── routes/           # REST API endpoints (/api/health)
-│   │   ├── schemas/          # Pydantic validation schemas (HealthResponse)
-│   │   ├── services/         # Business logic layer
-│   │   ├── config.py         # Application settings via Pydantic Settings
-│   │   ├── database.py       # SQLite engine & SessionLocal dependency
-│   │   └── main.py           # FastAPI entrypoint & CORS middleware
+│   │   ├── models/               # SQLAlchemy ORM models (Lead)
+│   │   ├── routes/               # API routes (health, leads, integrations, webhook)
+│   │   ├── schemas/              # Pydantic v2 validation models
+│   │   ├── services/             # Gemini AI scoring & fallback qualification engine
+│   │   ├── config.py             # SettingsConfigDict environment variables
+│   │   ├── database.py           # SQLite connection pool & session dependency
+│   │   └── main.py               # FastAPI entrypoint, tables creation, CORS
 │   ├── tests/
-│   │   └── test_health.py    # Pytest health & root endpoint tests
-│   ├── requirements.txt      # Python dependencies
-│   └── .env.example          # Backend environment variables
-├── automation/               # n8n workflows & webhook documentation
-│   └── README.md
-├── docs/                     # Architecture & technical documentation
-│   └── architecture.md
-├── scripts/                  # Automation & verification scripts
-│   └── verify_health_live.ps1 # Live health check verification script
-├── .env.example              # Root environment variable template
-├── .gitignore                # Exclusion rules (secrets, venv, build artifacts)
-└── README.md                 # Project documentation & instructions
+│   │   ├── test_health.py        # Health endpoint unit tests
+│   │   └── test_leads.py         # Lead CRUD, AI generation, webhook & deduplication tests
+│   ├── requirements.txt          # Python dependencies
+│   └── .env.example              # Backend environment template
+├── automation/                   # n8n Automation Engine
+│   ├── n8n_leadgen_workflow.json # Importable production n8n workflow
+│   └── README.md                 # Workflow setup, node mapping & resilience guide
+├── docs/                         # Detailed Assessment Documentation
+│   ├── installation.md           # Step-by-step installation instructions
+│   ├── environment-configuration.md # Environment variables and secrets guide
+│   ├── google-api-setup.md       # Google Forms, Sheets, Drive, Gmail OAuth setup
+│   ├── n8n-workflow-setup.md     # n8n import, credentials and trigger instructions
+│   ├── testing-guide.md          # Automated & manual test execution procedures
+│   └── demo-script.md            # Three-minute assessment video recording script
+├── scripts/                      # Verification and diagnostics scripts
+│   └── verify_health_live.ps1    # Live FastAPI server & health verification script
+├── .env.example                  # Root environment template
+├── .gitignore                    # Excludes venv/, node_modules/, dist/, .env, *.db
+└── README.md                     # Master documentation
 ```
 
 ---
 
-## ⚙️ Tech Stack & Environment
+## ⚙️ Tech Stack Overview
 
 | Layer | Technology | Version | Purpose |
 |---|---|---|---|
-| **OS** | Microsoft Windows | Windows 11/10 | Host development environment |
-| **Frontend Framework** | React + TypeScript | React 19.3.1 | Responsive SPA CRM dashboard |
-| **Build Tool** | Vite | 8.3.8 | High-speed ESM development server & bundler |
-| **Styling** | Tailwind CSS | 4.3.5 | Modern utility-first CSS framework |
+| **OS** | Windows 11/10 | Native PowerShell | Development and execution host |
+| **Frontend** | React + Vite + TypeScript | React 19.3 / Vite 8.3 | High-performance SaaS CRM dashboard |
+| **Styling** | Tailwind CSS | 4.3.5 | Modern utility-first CSS |
 | **Icons** | Lucide React | 1.77.0 | Clean iconography |
-| **Backend Framework** | FastAPI | 0.165.0 | Async Python REST API |
-| **Language Runtime** | Python | 3.11.9 | Stable Python runtime |
-| **Data Validation** | Pydantic & Pydantic-Settings | 2.14.4 / 2.16.3 | Schema definitions & typed configs |
-| **ORM & Database** | SQLAlchemy | 2.1.9 / SQLite | Relational database persistence |
-| **ASGI Server** | Uvicorn | 0.54.0 | High-performance ASGI web server |
-| **Testing** | Pytest & HTTPX | 9.2.0 / 0.28.1 | Automated API test suite |
-| **Automation & AI** | n8n & Google Gemini API | Phase 2 & 3 | Workflow automation & lead qualification |
+| **Backend** | Python + FastAPI | Python 3.11 / FastAPI 0.165 | Asynchronous RESTful API engine |
+| **Validation** | Pydantic v2 | 2.14.4 | Strict schema validation and typed configs |
+| **Database** | SQLAlchemy 2.0 + SQLite | 2.1.9 | Persistent local relational storage |
+| **AI Engine** | Google Gemini API | `gemini-1.5-flash` | Lead qualification, scoring & email drafting |
+| **Automation** | n8n | v1 workflow schema | Multi-node pipeline orchestration |
+| **Google Workspace** | Forms, Sheets, Gmail | v4 / OAuth2 | Inbound capture, logging, and email delivery |
+| **Testing** | Pytest & HTTPX | Pytest 9.2 / HTTPX 0.28 | Automated backend integration test suite |
 
 ---
 
-## 🚀 Quickstart Guide
+## 🔄 End-to-End Pipeline Workflow
 
-### Prerequisites
-- **Node.js** (v24.x recommended, verified on v24.20.0)
-- **npm** (v11.x+, verified on 11.19.0)
-- **Python 3.11** (located at `C:\Users\R\AppData\Local\Programs\Python\Python311\python.exe`)
-- **Git** (verified on v2.56.0)
+```
+[Inbound Prospect fills Google Form]
+               │
+               ▼
+[Row automatically appended to Google Sheets]
+               │
+               ▼
+[n8n Google Sheets Trigger fires]
+               │
+               ▼
+[n8n validates lead data & verifies duplicate status]
+               │
+               ▼
+[n8n dispatches payload to FastAPI Webhook: POST /api/automation/webhook]
+               │
+               ▼
+[FastAPI queries Google Gemini AI (gemini-1.5-flash)]
+├── Analyzes project requirements & budget
+├── Evaluates commercial priority: High / Medium / Low
+├── Explains priority reasoning
+└── Drafts customized, professional business follow-up email
+               │
+               ▼
+[LeadGen AI persists record in SQLite database]
+               │
+               ▼
+[n8n Gmail Node sends tailored follow-up to prospect]
+               │
+               ▼
+[n8n Google Sheets Node logs: Status = 'Sent', AI Priority, Timestamp]
+               │
+               ▼
+[CRM Dashboard immediately reflects new qualified lead]
+```
 
 ---
 
-### 1. Backend Setup & Run
+## 🚀 Quickstart Guide (PowerShell on Windows)
 
-The backend can be run independently using its dedicated virtual environment:
-
+### 1. Backend Server Setup & Start
+Open a PowerShell terminal:
 ```powershell
-# Navigate to backend directory
+# Navigate to backend
 cd backend
 
-# Create virtual environment (if not already created)
+# Create virtual environment (Python 3.11)
 & "C:\Users\R\AppData\Local\Programs\Python\Python311\python.exe" -m venv venv
 
 # Activate virtual environment
 .\venv\Scripts\Activate.ps1
 
-# Install dependencies
+# Install requirements
 pip install -r requirements.txt
 
-# Run FastAPI development server
+# Start FastAPI server
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+- API Base: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- Interactive Swagger Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- Health Check: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
 
-- **Backend API URL**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- **Health Endpoint**: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
-- **Interactive Swagger Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc Documentation**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
----
-
-### 2. Frontend Setup & Run
-
-The frontend runs independently with Vite dev server and proxy support:
-
+### 2. Frontend CRM Dashboard Setup & Start
+Open a second PowerShell terminal:
 ```powershell
-# Navigate to frontend directory
+# Navigate to frontend
 cd frontend
 
-# Install packages
+# Install dependencies
 npm install
 
-# Start Vite dev server
+# Start Vite development server
 npm run dev
 ```
-
-- **Frontend App URL**: [http://localhost:5173](http://localhost:5173)
+- CRM Dashboard: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-### 3. Running Automated Tests
+## 🔌 FastAPI REST Endpoints
 
-#### Backend Pytest Suite
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Live system health and SQLite connection check |
+| `GET` | `/api/leads` | List leads (supports `priority`, `email_status`, `search` query parameters) |
+| `POST` | `/api/leads` | Create an inbound lead with automatic AI scoring |
+| `GET` | `/api/leads/stats` | Pipeline metrics (Total, New, Contacted, High Priority, Failed) |
+| `GET` | `/api/leads/{id}` | Retrieve comprehensive lead profile and AI email draft |
+| `POST` | `/api/leads/{id}/generate-ai` | On-demand Google Gemini AI re-scoring and email synthesis |
+| `PATCH` | `/api/leads/{id}/status` | Update email delivery status (`Pending`, `Sent`, `Failed`) or priority |
+| `DELETE`| `/api/leads/{id}` | Remove lead record |
+| `POST` | `/api/automation/webhook` | Webhook ingestion endpoint for n8n/Google Sheets with duplicate prevention |
+| `GET` | `/api/integrations/status`| Live audit of environment variable configuration status |
+| `GET` | `/api/integrations/emails`| Outreach log of generated and sent emails |
+
+---
+
+## 📚 Comprehensive Documentation Suite
+
+- 📖 **[Installation Guide](docs/installation.md)**: Full local setup walkthrough for Windows.
+- ⚙️ **[Environment Configuration Guide](docs/environment-configuration.md)**: Details on all `.env` options and Gemini model configuration.
+- 🌐 **[Google APIs & Workspace Guide](docs/google-api-setup.md)**: Setting up Google Forms, Google Sheets headers, and Google Cloud OAuth credentials.
+- 🔄 **[n8n Workflow Setup Guide](docs/n8n-workflow-setup.md)**: How to import `automation/n8n_leadgen_workflow.json` and configure nodes.
+- 🧪 **[Testing & Verification Guide](docs/testing-guide.md)**: Procedures for executing backend test suites, frontend builds, and live simulation.
+- 🎬 **[Three-Minute Assessment Video Script](docs/demo-script.md)**: Scene-by-scene script for recording the assessment video.
+
+---
+
+## 🧪 Automated Testing & Quality Verification
+
+### 1. Run Backend Pytest Suite
 ```powershell
 cd backend
-.\venv\Scripts\python.exe -m pytest -v
+.\venv\Scripts\Activate.ps1
+pytest -v
 ```
+*(Result: 8 passing integration tests verifying health, lead CRUD, AI scoring, status patching, webhook ingestion, and duplicate prevention).*
 
-#### Frontend Build Verification
+### 2. Verify Frontend Production Build
 ```powershell
 cd frontend
 npm run build
 ```
+*(Result: Zero TypeScript or bundling diagnostics; clean production build ready).*
 
-#### Live End-to-End Health Verification
+### 3. Live Server Round-Trip Health Check
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\verify_health_live.ps1
 ```
 
 ---
 
-## 🔍 Health Endpoint Output
+## 🛡️ Security Protocol
 
-`GET /api/health` response:
-```json
-{
-  "status": "healthy",
-  "service": "LeadGen AI",
-  "version": "0.1.0",
-  "environment": "development",
-  "database": "connected"
-}
-```
-
----
-
-## 🗺️ Project Roadmap
-
-- [x] **Phase 1: Environment Inspection & Project Foundation** *(Completed)*
-  - Monorepo directory structure
-  - React + Vite + TypeScript + Tailwind CSS v4 frontend
-  - FastAPI + SQLAlchemy + SQLite backend environment
-  - Live `/api/health` connectivity and test validation
-  - Environment templates (`.env.example`) and `.gitignore`
-- [x] **Phase 2: CRM Dashboard UI & Core Lead Management** *(Completed)*
-  - Modern SaaS CRM dashboard layout with Dark Navy Sidebar & light workspace
-  - Executive Overview page with 5 KPI summary cards
-  - Real-time Lead Management Table (Search, Filters, Sort, Modal inspection)
-  - "High Priority Leads" dedicated view
-  - Automation page with 6-stage pipeline visualization & genuine status checks
-  - Automated Email History with preview dialog
-  - System Settings with zero-client-secrets security adherence
-  - FastAPI `/api/leads`, `/api/leads/stats`, and `/api/integrations` routes
-- [ ] **Phase 3: Google Gemini AI Scoring & Qualification Engine**
-  - Prompt engineering for lead qualification & urgency classification
-  - Automated follow-up email draft generation
-- [ ] **Phase 4: n8n Automation & Google Workspace Integration**
-  - Ingestion webhook from Google Forms / Google Sheets
-  - Automated Gmail notification and follow-up dispatch
-
+- **Zero Client Secrets**: No API keys or credentials exist in the client JavaScript bundle.
+- **Server-Side Isolation**: Google Gemini API key and webhook targets reside exclusively on the server (`backend/.env`).
+- **Input Sanitization**: Pydantic validates email formats and mandatory string boundaries on every API payload.
+- **CORS Hardening**: FastAPI strictly permits requests from designated origins (`http://localhost:5173`).

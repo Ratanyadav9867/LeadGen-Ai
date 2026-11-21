@@ -1,0 +1,280 @@
+{
+  "name": "LeadGen AI - Autonomous Lead Intake & Follow-Up Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "node-1-sheets-trigger",
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "notes": "Triggers on newly appended row from Google Forms response sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 1: Validate Lead Data Integrity\nconst item = $input.first().json;\n\nconst name = item['Name'] || item['Full Name'] || item['name'] || '';\nconst email = item['Email'] || item['Email Address'] || item['email'] || '';\nconst company = item['Company'] || item['Organization'] || item['company'] || '';\nconst service = item['Service'] || item['Service Required'] || item['service'] || 'AI Workflow Automation';\nconst budget = item['Budget'] || item['Budget Range'] || item['budget'] || '$5,000 - $10,000';\nconst description = item['Description'] || item['Project Scope'] || item['description'] || '';\nconst existingStatus = item['Status'] || item['status'] || '';\n\n// Basic RFC5322 regex check for valid email\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst isValidEmail = emailRegex.test(email.trim());\n\nif (!name.trim() || !isValidEmail) {\n  return [{\n    json: {\n      isValid: false,\n      error: 'Missing mandatory name or invalid email format',\n      raw: item\n    }\n  }];\n}\n\n// Step 2: Duplicate Prevention Check\nconst isAlreadyProcessed = existingStatus.toLowerCase() === 'sent' || existingStatus.toLowerCase() === 'processing';\n\nreturn [{\n  json: {\n    isValid: true,\n    isDuplicate: isAlreadyProcessed,\n    name: name.trim(),\n    email: email.trim(),\n    company: company.trim() || 'Independent Client',\n    service: service.trim(),\n    budget: budget.trim(),\n    description: description.trim(),\n    row_number: item.row_number || item['Row Number']\n  }\n}];"
+      },
+      "id": "node-2-validate-lead",
+      "name": "Validate Lead & Check Duplicates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            },
+            {
+              "value1": "={{ $json.isDuplicate }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "node-3-if-valid",
+      "name": "Is Valid & Not Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/automation/webhook",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.name }}\",\n  \"company\": \"{{ $json.company }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"service\": \"{{ $json.service }}\",\n  \"budget\": \"{{ $json.budget }}\",\n  \"description\": \"{{ $json.description }}\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-4-gemini-ai",
+      "name": "LeadGen AI / Gemini Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        880,
+        240
+      ],
+      "notes": "Calls LeadGen AI API which invokes Google Gemini model and deduplicates in SQLite"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify AI Response Structure\nconst res = $input.first().json;\n\nif (!res.email_subject || !res.email_body) {\n  throw new Error('AI Generation failed to produce required subject or body');\n}\n\nreturn [{\n  json: {\n    ...res,\n    email_subject: res.email_subject,\n    email_body: res.email_body,\n    priority: res.priority || 'Medium',\n    lead_id: res.lead_id\n  }\n}];"
+      },
+      "id": "node-5-validate-ai",
+      "name": "Validate AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "id": "node-6-gmail-send",
+      "name": "Gmail Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        240
+      ],
+      "notes": "Dispatches personalized follow-up via connected Gmail OAuth account"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Status",
+              "fieldValue": "Sent"
+            },
+            {
+              "fieldId": "AI Priority",
+              "fieldValue": "={{ $json.priority }}"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "Email Subject",
+              "fieldValue": "={{ $json.email_subject }}"
+            }
+          ]
+        }
+      },
+      "id": "node-7-update-sheets-success",
+      "name": "Update Sheets - Success Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1540,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Status",
+              "fieldValue": "Failed / Invalid"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-8-update-sheets-failure",
+      "name": "Update Sheets - Error Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        880,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead & Check Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead & Check Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Is Valid & Not Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid & Not Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "LeadGen AI / Gemini Processing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Sheets - Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LeadGen AI / Gemini Processing": {
+      "main": [
+        [
+          {
+            "node": "Validate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate AI Response": {
+      "main": [
+        [
+          {
+            "node": "Gmail Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Sheets - Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

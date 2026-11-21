@@ -162,3 +162,58 @@ export async function fetchEmails(): Promise<EmailRecord[]> {
   }
   return DEMO_EMAILS;
 }
+
+export async function generateAIEmail(leadId: number): Promise<Lead> {
+  const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/generate-ai`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to generate AI response: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+export async function updateLeadStatus(leadId: number, status: { email_status?: string; priority?: string }): Promise<Lead> {
+  const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(status),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to update status: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+export async function sendTestWebhook(payload: {
+  name: string;
+  company: string;
+  email: string;
+  service: string;
+  budget: string;
+  description: string;
+}): Promise<Record<string, unknown>> {
+  const res = await fetch(`${API_BASE_URL}/api/automation/webhook`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Webhook failed: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+

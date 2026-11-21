@@ -124,10 +124,26 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
         </div>
 
+        {/* Emails Sent / Contacted Leads */}
+        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wider">Contacted Leads</span>
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              <Send className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-emerald-600">
+              {loading ? '--' : stats?.emails_sent}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Automated outreach sent</div>
+          </div>
+        </div>
+
         {/* High Priority */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">High Priority</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">High Priority Leads</span>
             <div className="p-2 rounded-lg bg-rose-50 text-rose-600">
               <Flame className="w-4 h-4" />
             </div>
@@ -137,22 +153,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               {loading ? '--' : stats?.high_priority_leads}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">Urgent & high-value</div>
-          </div>
-        </div>
-
-        {/* Emails Sent */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Emails Sent</span>
-            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-              <Send className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-600">
-              {loading ? '--' : stats?.emails_sent}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Automated deliveries</div>
           </div>
         </div>
 

@@ -19,7 +19,7 @@ def test_health_endpoint():
     data = response.json()
     assert data["status"] == "healthy"
     assert data["service"] == "LeadGen AI"
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "1.0.0"
     assert data["environment"] == "development"
     assert data["database"] == "connected"
 
