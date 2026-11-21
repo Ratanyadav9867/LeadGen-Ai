@@ -95,3 +95,4 @@ To allow n8n to read new rows and update processing statuses securely:
 6. Once connected, open `automation/workflows/lead-capture-workflow.json` in n8n.
 7. Set your credential on the **Google Sheets Trigger** node and the update nodes.
 8. Enter your Spreadsheet ID and select `Form Responses 1`.
+

@@ -182,6 +182,13 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
             <div className="flex items-center space-x-1.5 text-xs">
               <span className="text-slate-400 mr-1">Mark Status:</span>
               <button
+                onClick={() => handleStatusChange('Draft')}
+                disabled={updatingStatus || currentLead.email_status === 'Draft'}
+                className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+              >
+                Draft
+              </button>
+              <button
                 onClick={() => handleStatusChange('Pending')}
                 disabled={updatingStatus || currentLead.email_status === 'Pending'}
                 className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 disabled:opacity-50"

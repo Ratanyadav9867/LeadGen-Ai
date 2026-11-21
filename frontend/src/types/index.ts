@@ -9,7 +9,8 @@ export interface HealthStatus {
 }
 
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
-export type EmailDeliveryStatus = 'Pending' | 'Sent' | 'Failed';
+export type EmailDeliveryStatus = 'Pending' | 'Draft' | 'Sent' | 'Failed';
+
 
 export interface Lead {
   id: number;

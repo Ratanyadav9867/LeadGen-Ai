@@ -1,11 +1,20 @@
-from pydantic import BaseModel
-from typing import Optional
+from app.schemas.health import HealthResponse
+from app.schemas.lead import (
+    LeadBase,
+    LeadCreate,
+    LeadUpdate,
+    LeadResponse,
+    LeadStats,
+)
+from app.schemas.email_record import AIResponsePayload, EmailRecordResponse
 
-
-class HealthResponse(BaseModel):
-    status: str
-    service: str
-    version: str
-    environment: str
-    database: str
-
+__all__ = [
+    "HealthResponse",
+    "LeadBase",
+    "LeadCreate",
+    "LeadUpdate",
+    "LeadResponse",
+    "LeadStats",
+    "AIResponsePayload",
+    "EmailRecordResponse",
+]

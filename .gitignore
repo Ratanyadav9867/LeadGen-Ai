@@ -62,3 +62,15 @@ frontend/.env
 Thumbs.db
 Desktop.ini
 
+# Agent metadata
+.agent/
+.agents/
+.gemini/
+.gsd/
+GSD-STYLE.md
+PROJECT_RULES.md
+VERSION
+adapters/
+model_capabilities.yaml
+
+

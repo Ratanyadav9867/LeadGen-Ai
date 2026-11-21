@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
+import app.models
 from app.routes import health, leads, integrations, webhook
 
 # Create tables in SQLite on startup

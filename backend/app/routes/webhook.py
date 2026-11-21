@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from app.database import get_db
 from app.models.lead import Lead
-from app.services.gemini_service import analyze_and_draft_lead
+from app.services.gemini_service import analyze_and_draft_lead, classify_lead_priority
 
 router = APIRouter(prefix="/automation", tags=["Automation"])
 
@@ -60,6 +60,9 @@ def capture_lead_from_sheets(
     normalized_budget = (payload.budget or "$5,000 - $10,000").strip()
     normalized_desc = (payload.description or "").strip() or None
 
+    # Deterministic priority classification in FastAPI
+    det_priority, det_reason = classify_lead_priority(normalized_budget, normalized_desc, normalized_company)
+
     # Duplicate check
     existing_lead = db.query(Lead).filter(
         Lead.email.ilike(normalized_email)
@@ -76,6 +79,8 @@ def capture_lead_from_sheets(
             "name": existing_lead.name,
             "email": existing_lead.email,
             "company": existing_lead.company,
+            "priority": existing_lead.priority,
+            "priority_reason": existing_lead.priority_reason,
             "spreadsheet_row": payload.spreadsheet_row
         }
 
@@ -88,8 +93,8 @@ def capture_lead_from_sheets(
         service=normalized_service,
         budget=normalized_budget,
         description=normalized_desc,
-        priority="Medium",
-        priority_reason="Captured from Google Sheets; awaiting Phase 5 AI scoring.",
+        priority=det_priority,
+        priority_reason=det_reason,
         email_status="Pending",
         email_subject=None,
         email_body=None,
@@ -111,6 +116,8 @@ def capture_lead_from_sheets(
         "company": new_lead.company,
         "service": new_lead.service,
         "budget": new_lead.budget,
+        "priority": new_lead.priority,
+        "priority_reason": new_lead.priority_reason,
         "spreadsheet_row": payload.spreadsheet_row,
         "created_at": new_lead.created_at.isoformat()
     }

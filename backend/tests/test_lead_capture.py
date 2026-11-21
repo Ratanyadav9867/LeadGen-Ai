@@ -93,3 +93,4 @@ def test_lead_capture_missing_required_fields():
     }
     resp = client.post("/api/automation/lead-capture", json=payload)
     assert resp.status_code == 422
+

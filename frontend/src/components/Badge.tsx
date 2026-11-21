@@ -30,6 +30,13 @@ export const PriorityBadge: React.FC<{ priority: PriorityLevel }> = ({ priority 
 
 export const StatusBadge: React.FC<{ status: EmailDeliveryStatus }> = ({ status }) => {
   switch (status) {
+    case 'Draft':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
+          <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-blue-500"></span>
+          Draft / Not Sent
+        </span>
+      );
     case 'Sent':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
