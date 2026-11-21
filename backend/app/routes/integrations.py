@@ -5,30 +5,44 @@ from typing import List, Dict, Any
 from app.database import get_db
 from app.models.lead import Lead
 
+from app.config import settings
+
 router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
 
-def check_status(env_var_name: str, placeholder: str) -> str:
-    val = os.getenv(env_var_name, "").strip()
-    if not val or val == placeholder:
+def check_status(key: str, placeholders: List[str]) -> str:
+    # Check settings attribute first, then fallback to os.getenv
+    val = getattr(settings, key, None)
+    if val is None or not str(val).strip():
+        val = os.getenv(key, "").strip()
+
+    val_str = str(val or "").strip()
+    if not val_str:
         return "Not configured"
+
+    for p in placeholders:
+        if val_str.lower() == p.lower() or val_str.startswith("your_"):
+            return "Not configured"
+
     return "Connected"
 
 
 @router.get("/status")
 def get_integrations_status() -> List[Dict[str, Any]]:
-    # Genuine environment checks without exposing credentials
-    sheets_status = check_status("GOOGLE_SHEET_ID", "your_google_sheet_id_here")
-    gemini_status = check_status("GEMINI_API_KEY", "your_gemini_api_key_here")
-    gmail_status = check_status("GMAIL_SENDER_ADDRESS", "your_email@gmail.com")
-    n8n_status = check_status("N8N_WEBHOOK_URL", "http://localhost:5678/webhook/leads")
+    sheets_status = check_status("GOOGLE_SHEET_ID", ["your_google_sheet_id_here"])
+    gemini_status = check_status("GEMINI_API_KEY", ["your_gemini_api_key_here"])
+    gmail_status = check_status("GMAIL_SENDER_ADDRESS", ["your_email@gmail.com"])
+    n8n_status = check_status("N8N_WEBHOOK_URL", ["your_n8n_webhook_url_here"])
+
+    # Google Forms connects through Sheets or n8n pipeline
+    forms_status = "Connected" if (sheets_status == "Connected" or n8n_status == "Connected") else "Not configured"
 
     return [
         {
             "id": "google-forms",
             "name": "Google Forms",
             "category": "Lead Ingestion",
-            "status": "Not configured",
+            "status": forms_status,
             "details": "Trigger on new respondent submission",
             "workflow_step": 1
         },
