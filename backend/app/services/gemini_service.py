@@ -139,7 +139,7 @@ async def generate_gemini_email(lead_data: Dict[str, Any]) -> Dict[str, Any]:
     api_key = settings.GEMINI_API_KEY.strip()
 
     # If API key not set or placeholder, use safe fallback for offline tests
-    if not api_key or api_key == "your_gemini_api_key_here":
+    if not api_key or api_key in ("your_gemini_api_key_here", "development_active_key") or api_key.startswith("dev"):
         logger.info("GEMINI_API_KEY not configured. Generating deterministic BDR response.")
         fallback = _generate_fallback_response(lead_data)
         fallback["source"] = "rule_based_fallback"

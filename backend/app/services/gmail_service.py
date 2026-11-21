@@ -68,8 +68,13 @@ async def send_via_gmail_api(
     """
     token = access_token or getattr(settings, "GMAIL_ACCESS_TOKEN", None) or ""
     
-    # If no token configured or offline/mock environment, simulate accepted dispatch safely
-    if not token or token == "mock_token" or token == "your_gmail_access_token_here":
+    # If no token configured or offline/mock/dev environment, simulate accepted dispatch safely
+    if (
+        not token
+        or token in ("mock_token", "your_gmail_access_token_here", "development_oauth_active")
+        or token.startswith("dev")
+        or token.startswith("mock")
+    ):
         mock_id = f"18f{uuid.uuid4().hex[:13]}"
         logger.info(f"Simulating Gmail dispatch for {recipient} with mock ID: {mock_id}")
         return {
