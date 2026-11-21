@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     N8N_WEBHOOK_URL: str = "http://localhost:5678/webhook/leads"
     GOOGLE_SHEET_ID: str = ""
     GMAIL_SENDER_ADDRESS: str = ""
+    GMAIL_ACCESS_TOKEN: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

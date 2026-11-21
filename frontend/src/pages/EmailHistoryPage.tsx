@@ -58,8 +58,8 @@ export const EmailHistoryPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row gap-4 justify-between items-center">
         {/* Status Filter Tabs */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
-          {(['All', 'Sent', 'Pending', 'Failed'] as const).map(tab => (
+        <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+          {(['All', 'Sent', 'Draft', 'Pending', 'Failed', 'Delivery Unknown'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}

@@ -77,10 +77,10 @@ LeadGen-AI/
 | **Backend** | Python + FastAPI | Python 3.11 / FastAPI 0.165 | Asynchronous RESTful API engine |
 | **Validation** | Pydantic v2 | 2.14.4 | Strict schema validation and typed configs |
 | **Database** | SQLAlchemy 2.0 + SQLite | 2.1.9 | Persistent local relational storage |
-| **AI Engine** | Google Gemini API | `gemini-1.5-flash` | Lead qualification, scoring & email drafting (Phase 5) |
+| **AI Engine** | Google Gemini API | `gemini-1.5-flash` | Lead qualification, scoring & email drafting |
 | **Automation** | n8n | v1 workflow schema | Multi-node pipeline orchestration |
-| **Google Workspace** | Forms, Sheets, Gmail | v4 / OAuth2 | Inbound capture, logging, and email delivery |
-| **Testing** | Pytest & HTTPX | Pytest 9.2 / HTTPX 0.28 | Automated backend integration test suite (24 passing tests) |
+| **Google Workspace** | Forms, Sheets, Gmail | v4 / OAuth2 | Inbound capture, logging, and Gmail OAuth dispatch (Phase 6) |
+| **Testing** | Pytest & HTTPX | Pytest 9.2 / HTTPX 0.28 | Automated backend integration test suite (36 passing tests) |
 
 
 ---

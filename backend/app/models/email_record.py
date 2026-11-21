@@ -12,6 +12,8 @@ class EmailRecord(Base):
     subject = Column(String(255), nullable=False)
     body = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
-    status = Column(String(30), default="Draft")  # Draft, Sent, Failed
+    status = Column(String(30), default="Draft")  # Draft, Sending, Sent, Failed, Delivery Unknown
+    gmail_message_id = Column(String(100), nullable=True)
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     sent_at = Column(DateTime, nullable=True)

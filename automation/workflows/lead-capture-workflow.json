@@ -1,5 +1,5 @@
 {
-  "name": "LeadGen AI - Phase 5 Lead Capture & Gemini AI Generation Pipeline",
+  "name": "LeadGen AI - Phase 6 End-to-End Automation Pipeline (Capture -> Gemini -> Gmail Delivery)",
   "nodes": [
     {
       "parameters": {
@@ -27,35 +27,34 @@
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
       "position": [
-        160,
+        120,
         340
       ],
       "notes": "Triggers on newly appended row in linked Google Form response spreadsheet. Do not hardcode credentials."
     },
     {
       "parameters": {
-        "jsCode": "// Node 2: Normalize Lead Data\n// Extracts variations of form headers, trims whitespace, converts email to lowercase, and preserves row number.\nconst item = $input.first().json;\n\nfunction getField(keys, defaultVal = '') {\n  for (const k of keys) {\n    if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') {\n      return String(item[k]).trim();\n    }\n  }\n  return defaultVal;\n}\n\nconst rawName = getField(['Full Name', 'Name', 'Lead Name', 'name', 'full_name']);\nconst rawEmail = getField(['Email Address', 'Email', 'email', 'email_address']);\nconst rawCompany = getField(['Company / Organization', 'Company', 'Organization', 'company', 'organization'], 'Independent Client');\nconst rawPhone = getField(['Phone Number', 'Phone', 'phone', 'contact_number'], '');\nconst rawService = getField(['Service Required', 'Service', 'service', 'service_required'], 'AI Workflow Automation');\nconst rawBudget = getField(['Estimated Budget', 'Budget', 'Budget Range', 'budget', 'budget_range'], '$5,000 - $10,000');\nconst rawDescription = getField(['Project Scope / Description', 'Project Scope', 'Description', 'description', 'notes'], '');\nconst existingStatus = getField(['Processing Status', 'Status', 'status'], '');\n\nconst rowNumber = item.__rowNum__ || item.row_number || item['Row Number'] || item.__row_index || null;\n\nreturn [{\n  json: {\n    name: rawName,\n    email: rawEmail.toLowerCase(),\n    company: rawCompany,\n    phone: rawPhone || null,\n    service: rawService,\n    budget: rawBudget,\n    description: rawDescription,\n    row_number: rowNumber,\n    existing_status: existingStatus,\n    raw_input: item\n  }\n}];"
+        "jsCode": "// Node 2: Normalize Lead Data\nconst item = $input.first().json;\n\nfunction getField(keys, defaultVal = '') {\n  for (const k of keys) {\n    if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') {\n      return String(item[k]).trim();\n    }\n  }\n  return defaultVal;\n}\n\nconst rawName = getField(['Full Name', 'Name', 'Lead Name', 'name', 'full_name']);\nconst rawEmail = getField(['Email Address', 'Email', 'email', 'email_address']);\nconst rawCompany = getField(['Company / Organization', 'Company', 'Organization', 'company', 'organization'], 'Independent Client');\nconst rawPhone = getField(['Phone Number', 'Phone', 'phone', 'contact_number'], '');\nconst rawService = getField(['Service Required', 'Service', 'service', 'service_required'], 'AI Workflow Automation');\nconst rawBudget = getField(['Estimated Budget', 'Budget', 'Budget Range', 'budget', 'budget_range'], '$5,000 - $10,000');\nconst rawDescription = getField(['Project Scope / Description', 'Project Scope', 'Description', 'description', 'notes'], '');\nconst existingStatus = getField(['Processing Status', 'Status', 'status'], '');\n\nconst rowNumber = item.__rowNum__ || item.row_number || item['Row Number'] || item.__row_index || null;\n\nreturn [{\n  json: {\n    name: rawName,\n    email: rawEmail.toLowerCase(),\n    company: rawCompany,\n    phone: rawPhone || null,\n    service: rawService,\n    budget: rawBudget,\n    description: rawDescription,\n    row_number: rowNumber,\n    existing_status: existingStatus,\n    raw_input: item\n  }\n}];"
       },
       "id": "node-2-normalize-lead",
       "name": "Normalize Lead Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        380,
+        320,
         340
-      ],
-      "notes": "Trims whitespace, normalizes email to lowercase, and preserves spreadsheet row number"
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Node 3: Validate Lead Data\n// Enforces non-empty name and valid email structure.\nconst item = $input.first().json;\n\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst hasName = item.name && item.name.length >= 2;\nconst hasValidEmail = item.email && emailRegex.test(item.email);\n\nlet validationError = null;\nif (!hasName) {\n  validationError = 'Missing or invalid full name (minimum 2 characters required)';\n} else if (!hasValidEmail) {\n  validationError = `Invalid email address format: '${item.email}'`;\n}\n\nif (validationError) {\n  return [{\n    json: {\n      ...item,\n      is_valid: false,\n      error_reason: validationError\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    is_valid: true,\n    error_reason: null\n  }\n}];"
+        "jsCode": "// Node 3: Validate Lead Data\nconst item = $input.first().json;\n\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst hasName = item.name && item.name.length >= 2;\nconst hasValidEmail = item.email && emailRegex.test(item.email);\n\nlet validationError = null;\nif (!hasName) {\n  validationError = 'Missing or invalid full name (minimum 2 characters required)';\n} else if (!hasValidEmail) {\n  validationError = `Invalid email address format: '${item.email}'`;\n}\n\nif (validationError) {\n  return [{\n    json: {\n      ...item,\n      is_valid: false,\n      error_reason: validationError\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    is_valid: true,\n    error_reason: null\n  }\n}];"
       },
       "id": "node-3-validate-lead",
       "name": "Validate Lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        600,
+        520,
         340
       ]
     },
@@ -75,7 +74,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        820,
+        720,
         340
       ]
     },
@@ -92,10 +91,9 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1040,
+        920,
         260
-      ],
-      "notes": "Queries FastAPI database to verify if email already exists"
+      ]
     },
     {
       "parameters": {
@@ -113,7 +111,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1260,
+        1120,
         260
       ]
     },
@@ -133,10 +131,9 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1480,
+        1320,
         200
-      ],
-      "notes": "Submits validated lead to FastAPI SQLite database and assigns deterministic priority"
+      ]
     },
     {
       "parameters": {
@@ -154,24 +151,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1700,
+        1520,
         200
-      ],
-      "notes": "Calls official Google Gemini API with system instructions and untrusted input protection"
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Node 9: Validate Structured JSON from Gemini\n// Extracts generated subject, body, summary and validates all required fields.\nconst response = $input.first().json;\nconst leadCapture = $('FastAPI Ingestion (lead-capture)').first().json;\nconst leadData = $('Normalize Lead Data').first().json;\n\nlet parsed = null;\ntry {\n  if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {\n    parsed = JSON.parse(response.candidates[0].content.parts[0].text);\n  } else if (response.subject && response.body && response.summary) {\n    parsed = response;\n  }\n} catch (e) {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Malformed JSON returned from Gemini: ' + e.message,\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nif (!parsed || typeof parsed !== 'object') {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Gemini did not return an object',\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nconst subject = (parsed.subject || '').trim();\nconst body = (parsed.body || '').trim();\nconst summary = (parsed.summary || '').trim();\n\nif (!subject || !body || !summary) {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Gemini output missing required fields (subject, body, or summary)',\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    is_valid_ai: true,\n    lead_id: leadCapture.lead_id,\n    subject: subject,\n    body: body,\n    summary: summary,\n    row_number: leadData.row_number,\n    error_reason: null\n  }\n}];"
+        "jsCode": "// Node 9: Validate Structured JSON from Gemini\nconst response = $input.first().json;\nconst leadCapture = $('FastAPI Ingestion (lead-capture)').first().json;\nconst leadData = $('Normalize Lead Data').first().json;\n\nlet parsed = null;\ntry {\n  if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {\n    parsed = JSON.parse(response.candidates[0].content.parts[0].text);\n  } else if (response.subject && response.body && response.summary) {\n    parsed = response;\n  }\n} catch (e) {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Malformed JSON returned from Gemini: ' + e.message,\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nif (!parsed || typeof parsed !== 'object') {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Gemini did not return an object',\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nconst subject = (parsed.subject || '').trim();\nconst body = (parsed.body || '').trim();\nconst summary = (parsed.summary || '').trim();\n\nif (!subject || !body || !summary) {\n  return [{\n    json: {\n      is_valid_ai: false,\n      error_reason: 'Gemini output missing required fields (subject, body, or summary)',\n      lead_id: leadCapture.lead_id,\n      row_number: leadData.row_number\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    is_valid_ai: true,\n    lead_id: leadCapture.lead_id,\n    subject: subject,\n    body: body,\n    summary: summary,\n    row_number: leadData.row_number,\n    recipient: leadData.email,\n    error_reason: null\n  }\n}];"
       },
       "id": "node-9-validate-ai-response",
       "name": "Validate Structured JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1920,
+        1720,
         200
-      ],
-      "notes": "Strict validation of subject, body, and summary non-empty string fields"
+      ]
     },
     {
       "parameters": {
@@ -189,7 +184,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2140,
+        1920,
         200
       ]
     },
@@ -204,15 +199,120 @@
           "timeout": 15000
         }
       },
-      "id": "node-11-save-ai-response",
+      "id": "node-11-save-ai-draft",
       "name": "Save Generated Draft in FastAPI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        2360,
+        2120,
         140
       ],
-      "notes": "Persists generated draft to EmailRecord in Draft status with idempotent duplicate prevention"
+      "notes": "Persists generated draft in Draft status with idempotency duplicate protection"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 12: Check Email Sending Eligibility\n// Verifies recipient, subject, body, and ensures lead is eligible for sending.\nconst draftResponse = $input.first().json;\nconst leadCapture = $('FastAPI Ingestion (lead-capture)').first().json;\nconst leadData = $('Normalize Lead Data').first().json;\n\nconst recipient = draftResponse.recipient || leadData.email;\nconst subject = draftResponse.subject;\nconst body = draftResponse.body;\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nif (!recipient || !emailRegex.test(recipient)) {\n  return [{ json: { is_eligible: false, reason: 'Invalid recipient email format', lead_id: leadCapture.lead_id, row_number: leadData.row_number } }];\n}\n\nif (!subject || !body) {\n  return [{ json: { is_eligible: false, reason: 'Missing email subject or body draft', lead_id: leadCapture.lead_id, row_number: leadData.row_number } }];\n}\n\nreturn [{\n  json: {\n    is_eligible: true,\n    lead_id: leadCapture.lead_id,\n    row_number: leadData.row_number,\n    recipient: recipient,\n    subject: subject,\n    body: body,\n    priority: draftResponse.priority || leadCapture.priority\n  }\n}];"
+      },
+      "id": "node-12-check-eligibility",
+      "name": "Check Email Eligibility",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_eligible }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-13-if-eligible",
+      "name": "Is Eligible to Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "node-14-gmail-send",
+      "name": "Gmail Dispatcher (Send Email)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2740,
+        100
+      ],
+      "continueOnFail": true,
+      "notes": "Sends personalized email through authenticated Gmail OAuth account"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 15: Evaluate Gmail Response\n// Classifies delivery into Sent, Failed, or Delivery Unknown (ambiguous).\nconst gmailResult = $input.first().json;\nconst eligibility = $('Check Email Eligibility').first().json;\n\n// If n8n Gmail node returned an error object\nif (gmailResult.error) {\n  const errMsg = String(gmailResult.error.message || gmailResult.error);\n  const isAmbiguous = errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('network') || errMsg.toLowerCase().includes('econnreset');\n  \n  return [{\n    json: {\n      lead_id: eligibility.lead_id,\n      row_number: eligibility.row_number,\n      recipient: eligibility.recipient,\n      subject: eligibility.subject,\n      body: eligibility.body,\n      priority: eligibility.priority,\n      status: isAmbiguous ? 'Delivery Unknown' : 'Failed',\n      gmail_message_id: null,\n      error_message: errMsg\n    }\n  }];\n}\n\n// Confirmed Gmail message ID returned\nconst msgId = gmailResult.id || gmailResult.messageId || 'confirmed_msg';\nreturn [{\n  json: {\n    lead_id: eligibility.lead_id,\n    row_number: eligibility.row_number,\n    recipient: eligibility.recipient,\n    subject: eligibility.subject,\n    body: eligibility.body,\n    priority: eligibility.priority,\n    status: 'Sent',\n    gmail_message_id: msgId,\n    error_message: null\n  }\n}];"
+      },
+      "id": "node-15-evaluate-gmail",
+      "name": "Evaluate Gmail Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:8000/api/leads/{{ $json.lead_id }}/record-send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"{{ $json.status }}\",\n  \"gmail_message_id\": {{ $json.gmail_message_id ? '\"' + $json.gmail_message_id + '\"' : 'null' }},\n  \"error_message\": {{ $json.error_message ? '\"' + $json.error_message.replace(/\"/g, '\\\\\"') + '\"' : 'null' }}\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-16-record-delivery-fastapi",
+      "name": "Record Delivery in FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        3180,
+        100
+      ],
+      "notes": "Atomically updates Lead and EmailRecord status in SQLite with idempotency lock"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.email_status }}",
+              "value2": "Sent"
+            }
+          ]
+        }
+      },
+      "id": "node-17-if-sent-success",
+      "name": "Is Sent Confirmed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        3400,
+        100
+      ]
     },
     {
       "parameters": {
@@ -235,7 +335,7 @@
             },
             {
               "fieldId": "Email Status",
-              "fieldValue": "Draft / Not Sent"
+              "fieldValue": "Sent"
             },
             {
               "fieldId": "AI Subject",
@@ -243,11 +343,15 @@
             },
             {
               "fieldId": "AI Response",
-              "fieldValue": "={{ $json.body }}"
+              "fieldValue": "={{ $('Check Email Eligibility').item.json.body }}"
             },
             {
               "fieldId": "Lead Priority",
               "fieldValue": "={{ $json.priority }}"
+            },
+            {
+              "fieldId": "Gmail Message ID",
+              "fieldValue": "={{ $json.gmail_message_id }}"
             },
             {
               "fieldId": "Lead ID",
@@ -260,15 +364,63 @@
           ]
         }
       },
-      "id": "node-12-sheets-update-success",
-      "name": "Google Sheets Update (Success)",
+      "id": "node-18-sheets-update-sent",
+      "name": "Google Sheets Update (Sent Success)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        2580,
-        140
+        3620,
+        60
       ],
-      "notes": "Updates original spreadsheet row with generated fields, Completed status, and Draft / Not Sent"
+      "notes": "Updates row with Email Status = Sent, Gmail Message ID, and Completed status"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Form Responses 1",
+          "mode": "name"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Processing Status",
+              "fieldValue": "Failed"
+            },
+            {
+              "fieldId": "Email Status",
+              "fieldValue": "Failed"
+            },
+            {
+              "fieldId": "Error Message",
+              "fieldValue": "={{ $json.error_message || 'Gmail dispatch rejected' }}"
+            },
+            {
+              "fieldId": "Lead ID",
+              "fieldValue": "={{ $json.lead_id }}"
+            },
+            {
+              "fieldId": "Processed At",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-19-sheets-update-send-failed",
+      "name": "Google Sheets Update (Send Failed)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        3620,
+        220
+      ],
+      "notes": "Logs send failure safely without corrupting prospect data"
     },
     {
       "parameters": {
@@ -294,7 +446,7 @@
               "fieldValue": "Failed / Not Sent"
             },
             {
-              "fieldId": "Error Reason",
+              "fieldId": "Error Message",
               "fieldValue": "={{ $json.error_reason || 'AI generation failed' }}"
             },
             {
@@ -308,15 +460,14 @@
           ]
         }
       },
-      "id": "node-13-sheets-update-ai-failed",
+      "id": "node-20-sheets-update-ai-failed",
       "name": "Google Sheets Update (AI Failed)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        2360,
-        280
-      ],
-      "notes": "Logs AI processing failures without overwriting form input or sending emails"
+        2120,
+        300
+      ]
     },
     {
       "parameters": {
@@ -348,15 +499,14 @@
           ]
         }
       },
-      "id": "node-14-sheets-update-duplicate",
+      "id": "node-21-sheets-update-duplicate",
       "name": "Google Sheets Update (Duplicate)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1480,
-        380
-      ],
-      "notes": "Marks duplicate row to prevent duplicate lead processing"
+        1320,
+        400
+      ]
     },
     {
       "parameters": {
@@ -388,15 +538,14 @@
           ]
         }
       },
-      "id": "node-15-sheets-update-invalid",
+      "id": "node-22-sheets-update-invalid",
       "name": "Google Sheets Update (Invalid)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1040,
+        920,
         480
-      ],
-      "notes": "Logs validation failure reasons to spreadsheet for manual correction"
+      ]
     }
   ],
   "connections": {
@@ -535,7 +684,80 @@
       "main": [
         [
           {
-            "node": "Google Sheets Update (Success)",
+            "node": "Check Email Eligibility",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Eligibility": {
+      "main": [
+        [
+          {
+            "node": "Is Eligible to Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Eligible to Send?": {
+      "main": [
+        [
+          {
+            "node": "Gmail Dispatcher (Send Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Dispatcher (Send Email)": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Gmail Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Gmail Response": {
+      "main": [
+        [
+          {
+            "node": "Record Delivery in FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Delivery in FastAPI": {
+      "main": [
+        [
+          {
+            "node": "Is Sent Confirmed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Sent Confirmed?": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Update (Sent Success)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets Update (Send Failed)",
             "type": "main",
             "index": 0
           }

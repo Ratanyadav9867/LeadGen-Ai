@@ -69,20 +69,51 @@ def get_integrations_status() -> List[Dict[str, Any]]:
 
 @router.get("/emails")
 def get_email_history(db: Session = Depends(get_db)):
+    from app.models.email_record import EmailRecord
+
+    # Join EmailRecords with Leads for comprehensive dispatch history
+    records = db.query(EmailRecord, Lead).outerjoin(Lead, EmailRecord.lead_id == Lead.id).order_by(EmailRecord.created_at.desc()).all()
+
+    if records:
+        results = []
+        for email_rec, lead in records:
+            lead_name = lead.name if lead else "Unknown"
+            lead_company = lead.company if lead else "Unknown"
+            lead_priority = lead.priority if lead else "Medium"
+            results.append({
+                "id": email_rec.id,
+                "lead_id": email_rec.lead_id,
+                "lead_name": lead_name,
+                "company": lead_company,
+                "recipient": email_rec.recipient,
+                "subject": email_rec.subject,
+                "body": email_rec.body,
+                "status": email_rec.status,
+                "gmail_message_id": email_rec.gmail_message_id,
+                "error_message": email_rec.error_message,
+                "timestamp": (email_rec.sent_at or email_rec.created_at).isoformat(),
+                "priority": lead_priority
+            })
+        return results
+
+    # Fallback to Leads table if no individual EmailRecords exist yet
     leads_with_emails = db.query(Lead).filter(
-        (Lead.email_subject.isnot(None)) | (Lead.email_status.in_(["Sent", "Failed", "Pending"]))
+        (Lead.email_subject.isnot(None)) | (Lead.email_status.in_(["Sent", "Failed", "Pending", "Draft", "Delivery Unknown"]))
     ).order_by(Lead.created_at.desc()).all()
 
     results = []
     for lead in leads_with_emails:
         results.append({
             "id": lead.id,
+            "lead_id": lead.id,
             "lead_name": lead.name,
             "company": lead.company,
             "recipient": lead.email,
             "subject": lead.email_subject or f"Follow-up: {lead.service} inquiry",
             "body": lead.email_body or "Automated AI follow-up draft scheduled for dispatch.",
             "status": lead.email_status,
+            "gmail_message_id": getattr(lead, "gmail_message_id", None),
+            "error_message": getattr(lead, "error_message", None),
             "timestamp": (lead.processed_at or lead.created_at).isoformat(),
             "priority": lead.priority
         })

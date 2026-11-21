@@ -16,6 +16,8 @@ class LeadBase(BaseModel):
     email_status: str = "Pending"
     email_subject: Optional[str] = None
     email_body: Optional[str] = None
+    gmail_message_id: Optional[str] = None
+    error_message: Optional[str] = None
 
 
 class LeadCreate(LeadBase):
@@ -35,6 +37,8 @@ class LeadUpdate(BaseModel):
     email_status: Optional[str] = None
     email_subject: Optional[str] = None
     email_body: Optional[str] = None
+    gmail_message_id: Optional[str] = None
+    error_message: Optional[str] = None
 
 
 class LeadResponse(LeadBase):

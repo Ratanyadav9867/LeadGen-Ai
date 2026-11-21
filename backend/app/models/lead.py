@@ -16,9 +16,11 @@ class Lead(Base):
     description = Column(Text, nullable=True)
     priority = Column(String(20), default="Medium")  # High, Medium, Low
     priority_reason = Column(Text, nullable=True)
-    email_status = Column(String(20), default="Pending")  # Pending, Sent, Failed
+    email_status = Column(String(30), default="Pending")  # Pending, Draft, Sending, Sent, Failed, Delivery Unknown
     email_subject = Column(String(255), nullable=True)
     email_body = Column(Text, nullable=True)
+    gmail_message_id = Column(String(100), nullable=True)
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     processed_at = Column(DateTime, nullable=True)
 

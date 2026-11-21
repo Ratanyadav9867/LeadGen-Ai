@@ -217,3 +217,47 @@ export async function sendTestWebhook(payload: {
   return await res.json();
 }
 
+export async function sendLeadEmail(leadId: number): Promise<{
+  success: boolean;
+  lead_id: number;
+  recipient: string;
+  subject: string;
+  email_status: string;
+  gmail_message_id?: string | null;
+  error_message?: string | null;
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/send-email`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to dispatch email: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+export async function checkSendEligibility(leadId: number): Promise<{
+  lead_id: number;
+  eligible: boolean;
+  reason?: string | null;
+  recipient: string;
+  email_status: string;
+  has_draft: boolean;
+  subject?: string | null;
+  body?: string | null;
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/send-eligibility`, {
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to check eligibility: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+

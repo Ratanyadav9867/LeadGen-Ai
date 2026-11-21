@@ -9,8 +9,7 @@ export interface HealthStatus {
 }
 
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
-export type EmailDeliveryStatus = 'Pending' | 'Draft' | 'Sent' | 'Failed';
-
+export type EmailDeliveryStatus = 'Pending' | 'Draft' | 'Sending' | 'Sent' | 'Failed' | 'Delivery Unknown';
 
 export interface Lead {
   id: number;
@@ -26,6 +25,8 @@ export interface Lead {
   email_status: EmailDeliveryStatus;
   email_subject?: string | null;
   email_body?: string | null;
+  gmail_message_id?: string | null;
+  error_message?: string | null;
   created_at: string;
   processed_at?: string | null;
 }
@@ -51,12 +52,15 @@ export interface IntegrationItem {
 
 export interface EmailRecord {
   id: number;
+  lead_id?: number;
   lead_name: string;
   company: string;
   recipient: string;
   subject: string;
   body: string;
   status: EmailDeliveryStatus;
+  gmail_message_id?: string | null;
+  error_message?: string | null;
   timestamp: string;
   priority: PriorityLevel;
 }

@@ -1,12 +1,12 @@
-# LeadGen AI — n8n Lead Capture & Gemini AI Automation (Phase 5)
+# LeadGen AI — n8n Lead Capture, Gemini AI & Gmail Delivery Pipeline (Phase 6)
 
-This directory contains the production-ready n8n workflow for **capturing inbound leads from Google Sheets, validating fields, enforcing duplicate prevention, generating personalized email drafts via Google Gemini AI, and updating Google Sheets with Draft / Not Sent status**.
+This directory contains the production-ready, importable n8n workflow orchestrating the complete end-to-end lifecycle: **inbound capture from Google Sheets, validation, duplicate prevention, Google Gemini AI personalization, draft persistence, duplicate-send prevention, Gmail OAuth dispatch, and dual-system status synchronization**.
 
-Workflow file: `automation/workflows/lead-capture-workflow.json`
+Workflow file: `automation/workflows/lead-capture-workflow.json` (22 nodes, 17 connections)
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ End-to-End Pipeline Architecture
 
 ```
 [Google Form Submission]
@@ -22,11 +22,11 @@ Workflow file: `automation/workflows/lead-capture-workflow.json`
          │
          ▼
 [Node 3 & 4: Validate Lead] 
-         ├── (Invalid) ────► [Node 15: Google Sheets Update (Invalid)]
+         ├── (Invalid) ────► [Node 22: Google Sheets Update (Invalid)]
          │
          ▼ (Valid)
 [Node 5 & 6: Check Duplicate in FastAPI] (GET /api/leads/check-duplicate?email=...)
-         ├── (Duplicate) ──► [Node 14: Google Sheets Update (Duplicate / Skipped)]
+         ├── (Duplicate) ──► [Node 21: Google Sheets Update (Duplicate / Skipped)]
          │
          ▼ (New Lead)
 [Node 7: FastAPI Ingestion] (POST /api/automation/lead-capture)
@@ -35,29 +35,54 @@ Workflow file: `automation/workflows/lead-capture-workflow.json`
 [Node 8: Gemini AI Generation] (POST https://generativelanguage.googleapis.com/...:generateContent)
          │
          ▼
-[Node 9: Validate Structured JSON] (Strict subject, body, summary string check)
+[Node 9: Validate Structured JSON] (Strict subject, body, summary check)
          │
          ▼
 [Node 10: Is AI Response Valid?]
-         ├── (Valid AI) ───► [Node 11: Save Draft in FastAPI] (POST /api/leads/{id}/ai-response)
-         │                          │
-         │                          ▼
-         │                   [Node 12: Google Sheets Update (Success)]
-         │                   - Status: Completed
-         │                   - Email Status: Draft / Not Sent
-         │                   - AI Subject & AI Response
+         ├── (Invalid AI) ─► [Node 20: Google Sheets Update (AI Failed)]
          │
-         └── (Invalid AI) ─► [Node 13: Google Sheets Update (AI Failed)]
-                             - Status: Failed
-                             - Email Status: Failed / Not Sent
-                             - Error Reason logged
+         ▼ (Valid AI)
+[Node 11: Save Draft in FastAPI] (POST /api/leads/{id}/ai-response)
+         │
+         ▼
+[Node 12 & 13: Check Email Eligibility] (Recipients RFC-5322 check & draft verification)
+         │
+         ▼
+[Node 14: Gmail Dispatcher (Send Email)] (Gmail OAuth2 API)
+         │
+         ▼
+[Node 15: Evaluate Gmail Response] (Classifies Sent vs Failed vs Delivery Unknown)
+         │
+         ▼
+[Node 16: Record Delivery in FastAPI] (POST /api/leads/{id}/record-send)
+         │
+         ▼
+[Node 17: Is Sent Confirmed?]
+         ├── (Confirmed) ──► [Node 18: Google Sheets Update (Sent Success)]
+         │                   - Email Status: Sent
+         │                   - Processing Status: Completed
+         │                   - Gmail Message ID recorded
+         │
+         └── (Rejected) ───► [Node 19: Google Sheets Update (Send Failed)]
+                             - Email Status: Failed
+                             - Error Message recorded
 ```
-
-> **Important:** In accordance with Phase 5 specifications, generated emails remain in **Draft / Not Sent** status. **No emails are transmitted in this phase.** Gmail delivery is strictly scheduled for Phase 6.
 
 ---
 
-## 📥 How to Import the Workflow into n8n
+## 🛡️ Duplicate-Send Protection & Safety Mechanisms
+
+1. **Pre-Send Eligibility Lock:**
+   - Evaluates recipient email syntax, non-empty subject, non-empty body, and verifies `email_status != 'Sent'`.
+2. **Idempotency Protection:**
+   - Retries with the same `gmail_message_id` return `200 OK (idempotent)`.
+   - Repeated attempts to send to an already-contacted lead return `HTTP 409 Conflict`.
+3. **Ambiguous Result Isolation (`Delivery Unknown`):**
+   - Network or gateway timeouts are marked `Delivery Unknown` and halt automatic retries until manually audited.
+
+---
+
+## 📥 How to Import and Activate the Workflow
 
 1. Start your local n8n instance:
    ```powershell
@@ -65,55 +90,47 @@ Workflow file: `automation/workflows/lead-capture-workflow.json`
    $env:GEMINI_MODEL="gemini-1.5-flash"
    npx n8n
    ```
-2. Open your browser at `http://localhost:5678`.
-3. In the left navigation, click **Workflows**.
-4. Click **Add Workflow** (or the **+** button).
-5. In the top-right corner, click the **...** (three dots) menu and select **Import from File**.
-6. Select `automation/workflows/lead-capture-workflow.json` from this repository.
-7. Click **Save** to persist the workflow.
+2. Open `http://localhost:5678` in your browser.
+3. In the left navigation, click **Workflows** → **Add Workflow** → **Import from File**.
+4. Select `automation/workflows/lead-capture-workflow.json`.
+5. Connect your credentials:
+   - **Google Sheets OAuth2 API** on Nodes 1, 18, 19, 20, 21, 22.
+   - **Gmail OAuth2 API** on Node 14 (`Gmail Dispatcher`).
+6. Click **Save** and toggle the workflow to **Active**.
 
 ---
 
-## 🔑 Credentials Configuration
+## 📊 Google Sheets Columns & Field Mappings
 
-### 1. Google Sheets OAuth2 API
-- Configured on **Google Sheets Trigger** (Node 1) and all update nodes (Nodes 12, 13, 14, 15).
-- Follow instructions in [docs/google-api-setup.md](../docs/google-api-setup.md).
+Ensure your linked Google Form response spreadsheet includes:
 
-### 2. Google Gemini API
-- Configured via environment variable `GEMINI_API_KEY` (and `GEMINI_MODEL`) in n8n or via HTTP Header Auth.
-- See detailed guide: [docs/GEMINI_SETUP.md](../docs/GEMINI_SETUP.md).
-
----
-
-## 📊 Spreadsheet Setup & Required Columns
-
-| Column Header | Type | Purpose | Updated By |
-|---|---|---|---|
-| `Timestamp` | DateTime | Google Form submission time | Google Forms |
-| `Full Name` | Text | Required lead contact name | Google Forms |
-| `Email Address` | Text | Required lead email (validated RFC 5322) | Google Forms |
-| `Company / Organization` | Text | Prospect company or organization name | Google Forms |
-| `Phone Number` | Text | Optional contact phone | Google Forms |
-| `Service Required` | Text | Category of inquiry | Google Forms |
-| `Estimated Budget` | Text | Budget tier | Google Forms |
-| `Project Scope / Description` | Text | Inbound inquiry description | Google Forms |
-| `AI Subject` | Text | Generated email subject line | n8n / Gemini |
-| `AI Response` | Text | Generated personalized email body | n8n / Gemini |
-| `Lead Priority` | Text | Deterministic priority (`High`, `Medium`, `Low`) | FastAPI |
-| `Processing Status` | Text | `Completed`, `Failed`, or `Duplicate / Skipped` | n8n |
-| `Email Status` | Text | `Draft / Not Sent` | n8n |
-| `Lead ID` | Integer | SQLite database record ID | FastAPI |
-| `Error Reason` | Text | Populated on validation or AI generation failure | n8n |
-| `Processed At` | DateTime | ISO timestamp of pipeline execution | n8n |
+| Column Header | Updated By | Description |
+|---|---|---|
+| `Timestamp` | Google Forms | Form submission timestamp |
+| `Full Name` | Google Forms | Contact name |
+| `Email Address` | Google Forms | Prospect email |
+| `Company / Organization` | Google Forms | Company name |
+| `Phone Number` | Google Forms | Contact phone |
+| `Service Required` | Google Forms | Inquiry category |
+| `Estimated Budget` | Google Forms | Budget tier |
+| `Project Scope / Description` | Google Forms | Client scope description |
+| `AI Subject` | n8n / Gemini | Personalized email subject line |
+| `AI Response` | n8n / Gemini | Consultative outreach email body |
+| `Lead Priority` | FastAPI | Deterministic priority (`High`, `Medium`, `Low`) |
+| `Processing Status` | n8n | `Completed`, `Failed`, or `Duplicate / Skipped` |
+| `Email Status` | n8n | `Sent`, `Draft`, `Failed`, or `Delivery Unknown` |
+| `Gmail Message ID` | n8n / Gmail | Confirmed message identifier from Gmail API |
+| `Lead ID` | FastAPI | SQLite record identifier |
+| `Error Message` | n8n | Error diagnostics on failure or timeout |
+| `Processed At` | n8n | ISO execution timestamp |
 
 ---
 
 ## ⚡ Verification & Testing
 
-Verify end-to-end functionality using the automated test suite:
+Run all 36 automated tests covering the entire system:
 ```powershell
 cd "c:\Users\R\OneDrive\Desktop\Lead Gen Ai\backend"
-.\venv\Scripts\python -m pytest tests/test_gemini_integration.py -v
+.\venv\Scripts\python -m pytest -v
 ```
-All 11 test cases pass, validating prompt engineering, untrusted input protection, error fallback, rate limit retry, idempotency, draft persistence, and non-transmission during Phase 5.
+All 12 Phase 6 Gmail delivery tests pass (100% pass rate).

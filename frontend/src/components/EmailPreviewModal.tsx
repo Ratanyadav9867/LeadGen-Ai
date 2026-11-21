@@ -42,8 +42,19 @@ export const EmailPreviewModal: React.FC<EmailPreviewModalProps> = ({ email, isO
               <span className="text-slate-400">Lead Tier:</span>
               <PriorityBadge priority={email.priority} />
             </div>
+            {email.gmail_message_id && (
+              <div className="col-span-1 sm:col-span-2 pt-1 font-mono text-[11px] text-slate-500">
+                <span className="text-slate-400 font-sans">Gmail Message ID:</span> {email.gmail_message_id}
+              </div>
+            )}
           </div>
         </div>
+
+        {email.error_message && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+            <span className="font-semibold">Delivery Warning / Error:</span> {email.error_message}
+          </div>
+        )}
 
         <div className="space-y-2">
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Body</div>

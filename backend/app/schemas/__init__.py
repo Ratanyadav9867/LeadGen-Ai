@@ -6,7 +6,7 @@ from app.schemas.lead import (
     LeadResponse,
     LeadStats,
 )
-from app.schemas.email_record import AIResponsePayload, EmailRecordResponse
+from app.schemas.email_record import AIResponsePayload, EmailRecordResponse, RecordSendPayload
 
 __all__ = [
     "HealthResponse",
@@ -17,4 +17,5 @@ __all__ = [
     "LeadStats",
     "AIResponsePayload",
     "EmailRecordResponse",
+    "RecordSendPayload",
 ]

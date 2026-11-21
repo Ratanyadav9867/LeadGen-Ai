@@ -7,12 +7,13 @@ from app.database import get_db
 from app.models.lead import Lead
 from app.models.email_record import EmailRecord
 from app.schemas.lead import LeadCreate, LeadResponse, LeadStats, LeadUpdate
-from app.schemas.email_record import AIResponsePayload
+from app.schemas.email_record import AIResponsePayload, RecordSendPayload
 from app.services.gemini_service import (
     generate_gemini_email,
     classify_lead_priority,
     analyze_and_draft_lead,
 )
+from app.services.gmail_service import validate_email_eligibility, send_via_gmail_api
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -299,3 +300,198 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     db.delete(lead)
     db.commit()
     return None
+
+
+@router.get("/{lead_id}/send-eligibility")
+def check_send_eligibility(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Evaluates Phase 6 delivery preconditions:
+    - Lead existence, valid email address
+    - Presence of non-empty AI draft subject and body
+    - Verification that outreach has not already been marked Sent
+    - Exclusion of ambiguous Delivery Unknown states
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    email_rec = db.query(EmailRecord).filter(EmailRecord.lead_id == lead.id).order_by(EmailRecord.created_at.desc()).first()
+    is_eligible, reason = validate_email_eligibility(lead, email_rec)
+
+    return {
+        "lead_id": lead.id,
+        "eligible": is_eligible,
+        "reason": reason,
+        "recipient": lead.email,
+        "email_status": lead.email_status,
+        "has_draft": bool(lead.email_subject and lead.email_body),
+        "subject": lead.email_subject,
+        "body": lead.email_body
+    }
+
+
+@router.post("/{lead_id}/send-email")
+async def send_email_for_lead(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Dispatches the generated follow-up draft through Gmail.
+    - Pre-send eligibility check prevents duplicate sends
+    - Sets 'Sending' status before network call
+    - Enforces accurate state transitions: 'Sent', 'Failed', or 'Delivery Unknown'
+    - Updates Lead and EmailRecord models atomically
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    email_rec = db.query(EmailRecord).filter(EmailRecord.lead_id == lead.id).order_by(EmailRecord.created_at.desc()).first()
+
+    is_eligible, reason = validate_email_eligibility(lead, email_rec)
+    if not is_eligible:
+        if "already been" in (reason or "").lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Duplicate send prevented: {reason}"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Lead not eligible for sending: {reason}"
+        )
+
+    # Set sending state
+    lead.email_status = "Sending"
+    db.commit()
+
+    # Dispatch via Gmail API
+    result = await send_via_gmail_api(
+        recipient=lead.email,
+        subject=lead.email_subject,
+        body=lead.email_body
+    )
+
+    send_status = result["status"]
+    msg_id = result.get("gmail_message_id")
+    error_msg = result.get("error")
+    now = datetime.utcnow()
+
+    # Update EmailRecord
+    if not email_rec:
+        email_rec = EmailRecord(
+            lead_id=lead.id,
+            recipient=lead.email,
+            subject=lead.email_subject,
+            body=lead.email_body,
+            status=send_status,
+            gmail_message_id=msg_id,
+            error_message=error_msg,
+            sent_at=now if send_status == "Sent" else None
+        )
+        db.add(email_rec)
+    else:
+        email_rec.status = send_status
+        email_rec.gmail_message_id = msg_id
+        email_rec.error_message = error_msg
+        if send_status == "Sent":
+            email_rec.sent_at = now
+
+    # Update Lead
+    lead.email_status = send_status
+    lead.gmail_message_id = msg_id
+    lead.error_message = error_msg
+    lead.processed_at = now
+
+    db.commit()
+    db.refresh(lead)
+    if email_rec:
+        db.refresh(email_rec)
+
+    return {
+        "success": send_status == "Sent",
+        "lead_id": lead.id,
+        "email_record_id": email_rec.id if email_rec else None,
+        "recipient": lead.email,
+        "subject": lead.email_subject,
+        "email_status": lead.email_status,
+        "gmail_message_id": lead.gmail_message_id,
+        "error_message": lead.error_message,
+        "sent_at": email_rec.sent_at.isoformat() if (email_rec and email_rec.sent_at) else None
+    }
+
+
+@router.post("/{lead_id}/record-send")
+def record_email_send_result(lead_id: int, payload: RecordSendPayload, db: Session = Depends(get_db)):
+    """
+    Dedicated endpoint for n8n Gmail workflow integration.
+    Records delivery outcome (Sent, Failed, Delivery Unknown) and Gmail message ID.
+    Enforces idempotency and prevents overwriting already-sent records.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Idempotency check: if already Sent
+    if lead.email_status == "Sent" and payload.status == "Sent":
+        if payload.gmail_message_id and lead.gmail_message_id == payload.gmail_message_id:
+            return {
+                "success": True,
+                "message": "Send confirmation already recorded (idempotent)",
+                "lead_id": lead.id,
+                "email_status": lead.email_status,
+                "gmail_message_id": lead.gmail_message_id,
+                "processed_at": lead.processed_at.isoformat() if lead.processed_at else None
+            }
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot record send: Email has already been dispatched to this lead."
+        )
+
+    email_rec = db.query(EmailRecord).filter(EmailRecord.lead_id == lead.id).order_by(EmailRecord.created_at.desc()).first()
+    now = datetime.utcnow()
+
+    if not email_rec:
+        email_rec = EmailRecord(
+            lead_id=lead.id,
+            recipient=lead.email,
+            subject=lead.email_subject or f"Inquiry regarding {lead.service}",
+            body=lead.email_body or "Automated response.",
+            status=payload.status,
+            gmail_message_id=payload.gmail_message_id,
+            error_message=payload.error_message,
+            sent_at=now if payload.status == "Sent" else None
+        )
+        db.add(email_rec)
+    else:
+        email_rec.status = payload.status
+        if payload.gmail_message_id:
+            email_rec.gmail_message_id = payload.gmail_message_id
+        if payload.error_message:
+            email_rec.error_message = payload.error_message
+        if payload.status == "Sent":
+            email_rec.sent_at = now
+
+    # Update Lead model
+    lead.email_status = payload.status
+    if payload.gmail_message_id:
+        lead.gmail_message_id = payload.gmail_message_id
+    if payload.error_message:
+        lead.error_message = payload.error_message
+    lead.processed_at = now
+
+    db.commit()
+    db.refresh(lead)
+    if email_rec:
+        db.refresh(email_rec)
+
+    return {
+        "success": payload.status == "Sent",
+        "lead_id": lead.id,
+        "email_record_id": email_rec.id if email_rec else None,
+        "recipient": lead.email,
+        "subject": lead.email_subject,
+        "priority": lead.priority,
+        "email_status": lead.email_status,
+        "processing_status": "Completed" if payload.status == "Sent" else ("Failed" if payload.status == "Failed" else "Ambiguous"),
+        "gmail_message_id": lead.gmail_message_id,
+        "error_message": lead.error_message,
+        "processed_at": lead.processed_at.isoformat()
+    }
+
