@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import health
+from app.database import engine, Base
+from app.routes import health, leads, integrations
+
+# Create tables in SQLite on startup
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -22,6 +26,8 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(health.router, prefix="/api")
+app.include_router(leads.router, prefix="/api")
+app.include_router(integrations.router, prefix="/api")
 
 
 @app.get("/")
@@ -29,6 +35,9 @@ def root():
     return {
         "message": f"Welcome to {settings.PROJECT_NAME} API",
         "health": "/api/health",
+        "leads": "/api/leads",
+        "stats": "/api/leads/stats",
+        "integrations": "/api/integrations/status",
+        "emails": "/api/integrations/emails",
         "docs": "/docs"
     }
-

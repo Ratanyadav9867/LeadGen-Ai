@@ -1,4 +1,5 @@
-import type { HealthStatus } from '../types';
+import type { HealthStatus, Lead, LeadStats, IntegrationItem, EmailRecord } from '../types';
+import { DEMO_LEADS, DEMO_INTEGRATIONS, DEMO_EMAILS } from '../data/demoLeads';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -9,9 +10,7 @@ export async function fetchHealth(): Promise<HealthStatus> {
   try {
     const res = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: { 'Accept': 'application/json' },
     });
 
     const latencyMs = Math.round(performance.now() - startTime);
@@ -38,4 +37,128 @@ export async function fetchHealth(): Promise<HealthStatus> {
       timestamp: new Date().toLocaleTimeString(),
     };
   }
+}
+
+export interface LeadsResult {
+  leads: Lead[];
+  isDemo: boolean;
+  total: number;
+}
+
+export async function fetchLeads(filters?: { priority?: string; email_status?: string; search?: string }): Promise<LeadsResult> {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.priority && filters.priority !== 'All') params.append('priority', filters.priority);
+    if (filters?.email_status && filters.email_status !== 'All') params.append('email_status', filters.email_status);
+    if (filters?.search) params.append('search', filters.search);
+
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/leads${qs}`, {
+      headers: { 'Accept': 'application/json' },
+    });
+
+    if (res.ok) {
+      const liveData: Lead[] = await res.json();
+      if (liveData.length > 0) {
+        return { leads: liveData, isDemo: false, total: liveData.length };
+      }
+    }
+  } catch (e) {
+    // Fall back to explicitly labeled demo dataset
+  }
+
+  // Filter demo leads client-side
+  let filtered = [...DEMO_LEADS];
+  if (filters?.priority && filters.priority !== 'All') {
+    filtered = filtered.filter(l => l.priority.toLowerCase() === filters.priority?.toLowerCase());
+  }
+  if (filters?.email_status && filters.email_status !== 'All') {
+    filtered = filtered.filter(l => l.email_status.toLowerCase() === filters.email_status?.toLowerCase());
+  }
+  if (filters?.search) {
+    const query = filters.search.toLowerCase();
+    filtered = filtered.filter(l =>
+      l.name.toLowerCase().includes(query) ||
+      l.company.toLowerCase().includes(query) ||
+      l.email.toLowerCase().includes(query) ||
+      l.service.toLowerCase().includes(query)
+    );
+  }
+
+  return { leads: filtered, isDemo: true, total: filtered.length };
+}
+
+export async function fetchStats(): Promise<{ stats: LeadStats; isDemo: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/leads/stats`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+      const stats: LeadStats = await res.json();
+      if (stats.total_leads > 0) {
+        return { stats, isDemo: false };
+      }
+    }
+  } catch (e) {
+    // Fall back
+  }
+
+  return {
+    stats: {
+      total_leads: DEMO_LEADS.length,
+      new_leads: DEMO_LEADS.filter(l => l.email_status === 'Pending').length,
+      high_priority_leads: DEMO_LEADS.filter(l => l.priority === 'High').length,
+      emails_sent: DEMO_LEADS.filter(l => l.email_status === 'Sent').length,
+      emails_failed: DEMO_LEADS.filter(l => l.email_status === 'Failed').length,
+    },
+    isDemo: true,
+  };
+}
+
+export async function createLead(leadData: Omit<Lead, 'id' | 'created_at' | 'processed_at'>): Promise<Lead> {
+  const res = await fetch(`${API_BASE_URL}/api/leads`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(leadData),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to create lead: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+export async function fetchIntegrations(): Promise<IntegrationItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/integrations/status`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    // Fall back
+  }
+  return DEMO_INTEGRATIONS;
+}
+
+export async function fetchEmails(): Promise<EmailRecord[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/integrations/emails`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+      const data: EmailRecord[] = await res.json();
+      if (data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    // Fall back
+  }
+  return DEMO_EMAILS;
 }

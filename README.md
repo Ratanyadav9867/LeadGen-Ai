@@ -161,19 +161,25 @@ powershell -ExecutionPolicy Bypass -File .\scripts\verify_health_live.ps1
 
 ## 🗺️ Project Roadmap
 
-- [x] **Phase 1: Environment Inspection & Project Foundation** *(Current)*
+- [x] **Phase 1: Environment Inspection & Project Foundation** *(Completed)*
   - Monorepo directory structure
   - React + Vite + TypeScript + Tailwind CSS v4 frontend
   - FastAPI + SQLAlchemy + SQLite backend environment
   - Live `/api/health` connectivity and test validation
   - Environment templates (`.env.example`) and `.gitignore`
-- [ ] **Phase 2: Database Schema & Lead Management Core**
-  - Lead model (Contact Info, Company, Status, Score, Follow-up Stage)
-  - CRUD API routes for lead ingestion and management
-  - Frontend lead table, status filters, and modal inspection
+- [x] **Phase 2: CRM Dashboard UI & Core Lead Management** *(Completed)*
+  - Modern SaaS CRM dashboard layout with Dark Navy Sidebar & light workspace
+  - Executive Overview page with 5 KPI summary cards
+  - Real-time Lead Management Table (Search, Filters, Sort, Modal inspection)
+  - "High Priority Leads" dedicated view
+  - Automation page with 6-stage pipeline visualization & genuine status checks
+  - Automated Email History with preview dialog
+  - System Settings with zero-client-secrets security adherence
+  - FastAPI `/api/leads`, `/api/leads/stats`, and `/api/integrations` routes
 - [ ] **Phase 3: Google Gemini AI Scoring & Qualification Engine**
   - Prompt engineering for lead qualification & urgency classification
   - Automated follow-up email draft generation
 - [ ] **Phase 4: n8n Automation & Google Workspace Integration**
   - Ingestion webhook from Google Forms / Google Sheets
   - Automated Gmail notification and follow-up dispatch
+
