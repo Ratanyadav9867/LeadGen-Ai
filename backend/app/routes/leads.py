@@ -55,11 +55,27 @@ def get_leads(
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
     lead_dict = payload.model_dump()
-    # Automatically execute AI qualification if not provided
-    if not lead_dict.get("priority_reason") or not lead_dict.get("email_body"):
+    raw_priority = lead_dict.get("priority")
+
+    # If admin explicitly selected a priority in ["High", "Medium", "Low"], honor manual selection:
+    if raw_priority and raw_priority in ["High", "Medium", "Low"]:
+        lead_dict["priority"] = raw_priority
+        lead_dict["priority_source"] = "manual"
+        if not lead_dict.get("priority_reason"):
+            lead_dict["priority_reason"] = f"Manually assigned as {raw_priority} priority by administrator."
+    else:
+        # Priority not specified or "Auto": automatically assign via AI priority engine
+        lead_dict["priority_source"] = "ai"
         ai_result = await analyze_and_draft_lead(lead_dict)
-        lead_dict["priority"] = ai_result.get("priority", lead_dict.get("priority", "Medium"))
+        lead_dict["priority"] = ai_result.get("priority", "Medium")
         lead_dict["priority_reason"] = ai_result.get("priority_reason")
+        lead_dict["email_subject"] = ai_result.get("email_subject")
+        lead_dict["email_body"] = ai_result.get("email_body")
+        lead_dict["processed_at"] = datetime.utcnow()
+
+    # Ensure draft email exists
+    if not lead_dict.get("email_body"):
+        ai_result = await analyze_and_draft_lead(lead_dict)
         lead_dict["email_subject"] = ai_result.get("email_subject")
         lead_dict["email_body"] = ai_result.get("email_body")
         lead_dict["processed_at"] = datetime.utcnow()
@@ -188,6 +204,13 @@ def save_ai_response(
     lead.email_status = "Draft"
     lead.processed_at = datetime.utcnow()
 
+    # Update AI priority if provided by n8n or Gemini
+    if payload.priority and payload.priority.capitalize() in ["High", "Medium", "Low"]:
+        lead.priority = payload.priority.capitalize()
+        lead.priority_source = "ai"
+        if payload.priority_reason:
+            lead.priority_reason = payload.priority_reason
+
     db.commit()
     db.refresh(email_rec)
     db.refresh(lead)
@@ -227,12 +250,7 @@ async def generate_ai_for_lead(lead_id: int, db: Session = Depends(get_db)):
             detail="Cannot re-generate AI response for a lead whose email has already been sent."
         )
 
-    # 1. Authoritative deterministic priority classification in FastAPI
-    priority, reason = classify_lead_priority(lead.budget, lead.description, lead.company)
-    lead.priority = priority
-    lead.priority_reason = reason
-
-    # 2. Call Gemini service for personalized subject, body, summary
+    # 1. Call Gemini service for personalized subject, body, summary, and priority
     lead_data = {
         "name": lead.name,
         "company": lead.company,
@@ -243,6 +261,16 @@ async def generate_ai_for_lead(lead_id: int, db: Session = Depends(get_db)):
         "description": lead.description
     }
     ai_result = await generate_gemini_email(lead_data)
+
+    # 2. Intelligent priority assignment via Gemini with safe rule-based fallback
+    ai_priority = ai_result.get("priority")
+    ai_reason = ai_result.get("priority_reason")
+    if not ai_priority or ai_priority not in ["High", "Medium", "Low"]:
+        ai_priority, ai_reason = classify_lead_priority(lead.budget, lead.description or "", lead.company, lead.service)
+
+    lead.priority = ai_priority
+    lead.priority_reason = ai_reason
+    lead.priority_source = "ai"
 
     # 3. Save EmailRecord
     email_rec = EmailRecord(

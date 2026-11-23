@@ -134,7 +134,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <PriorityBadge priority={currentLead.priority} />
+            <PriorityBadge priority={currentLead.priority} source={currentLead.priority_source} showSource={true} />
             <StatusBadge status={currentLead.email_status} />
           </div>
         </div>
@@ -191,12 +191,12 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
           </p>
         </div>
 
-        {/* AI Qualification & Reasoning */}
-        <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 space-y-2">
+        {/* AI Qualification & Priority Reasoning */}
+        <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-indigo-900 font-semibold text-sm">
               <Sparkles className="w-4 h-4 text-indigo-600" />
-              <span>Google Gemini AI Lead Scoring Analysis</span>
+              <span>Priority Evaluation &amp; Qualification Rationale</span>
             </div>
             <button
               onClick={handleGenerateAI}
@@ -204,12 +204,30 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
               className="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 rounded-lg transition-colors shadow-2xs disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />
-              <span>{generating ? 'Analyzing...' : 'Re-run Gemini AI'}</span>
+              <span>{generating ? 'Re-evaluating...' : 'Re-run AI Evaluation'}</span>
             </button>
           </div>
-          <p className="text-xs text-indigo-800 leading-relaxed">
-            {currentLead.priority_reason || 'AI scoring prioritizes leads based on verified enterprise budget, clear project requirements, and prompt delivery expectations.'}
-          </p>
+          
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="text-slate-500 font-medium">Assignment Source:</span>
+            <span className={`px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+              currentLead.priority_source === 'manual'
+                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+            }`}>
+              {currentLead.priority_source === 'manual' ? 'Manual Admin Selection' : 'Automated Gemini AI Engine'}
+            </span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-500 font-medium">Assigned Level:</span>
+            <PriorityBadge priority={currentLead.priority} />
+          </div>
+
+          <div className="bg-white/80 p-3 rounded-lg border border-indigo-100/80">
+            <div className="text-[11px] font-semibold text-indigo-900 uppercase tracking-wider mb-1">Classification Reason</div>
+            <p className="text-xs text-slate-700 leading-relaxed">
+              {currentLead.priority_reason || 'AI scoring automatically evaluates leads based on budget, project scope clarity, and requirement urgency.'}
+            </p>
+          </div>
         </div>
 
         {/* AI Generated Email Draft */}

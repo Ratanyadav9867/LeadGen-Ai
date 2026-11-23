@@ -220,7 +220,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                   <td className="py-3.5 px-6 text-slate-700">{lead.service}</td>
                   <td className="py-3.5 px-6 text-slate-700 font-medium">{lead.budget}</td>
                   <td className="py-3.5 px-6">
-                    <PriorityBadge priority={lead.priority} />
+                    <PriorityBadge priority={lead.priority} source={lead.priority_source} showSource={true} />
                   </td>
                   <td className="py-3.5 px-6">
                     <StatusBadge status={lead.email_status} />

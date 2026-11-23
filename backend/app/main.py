@@ -21,6 +21,8 @@ def ensure_sqlite_columns():
                 conn.execute(text("ALTER TABLE leads ADD COLUMN gmail_message_id VARCHAR(100)"))
             if "error_message" not in lead_cols:
                 conn.execute(text("ALTER TABLE leads ADD COLUMN error_message TEXT"))
+            if "priority_source" not in lead_cols:
+                conn.execute(text("ALTER TABLE leads ADD COLUMN priority_source VARCHAR(20) DEFAULT 'ai'"))
 
             # Check email_records columns
             res = conn.execute(text("PRAGMA table_info(email_records)")).fetchall()

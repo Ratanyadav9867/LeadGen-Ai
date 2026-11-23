@@ -13,6 +13,7 @@ class LeadBase(BaseModel):
     description: Optional[str] = None
     priority: str = "Medium"
     priority_reason: Optional[str] = None
+    priority_source: Optional[str] = "ai"
     email_status: str = "Pending"
     email_subject: Optional[str] = None
     email_body: Optional[str] = None
@@ -20,8 +21,20 @@ class LeadBase(BaseModel):
     error_message: Optional[str] = None
 
 
-class LeadCreate(LeadBase):
-    pass
+class LeadCreate(BaseModel):
+    name: str
+    company: str
+    email: str
+    phone: Optional[str] = None
+    service: str
+    budget: str
+    description: Optional[str] = None
+    priority: Optional[str] = None
+    priority_reason: Optional[str] = None
+    priority_source: Optional[str] = None
+    email_status: Optional[str] = "Pending"
+    email_subject: Optional[str] = None
+    email_body: Optional[str] = None
 
 
 class LeadUpdate(BaseModel):

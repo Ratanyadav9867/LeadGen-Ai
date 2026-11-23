@@ -22,6 +22,7 @@ export interface Lead {
   description?: string | null;
   priority: PriorityLevel;
   priority_reason?: string | null;
+  priority_source?: 'ai' | 'manual' | string | null;
   email_status: EmailDeliveryStatus;
   email_subject?: string | null;
   email_body?: string | null;

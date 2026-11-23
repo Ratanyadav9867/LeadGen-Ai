@@ -60,8 +60,13 @@ def capture_lead_from_sheets(
     normalized_budget = (payload.budget or "$5,000 - $10,000").strip()
     normalized_desc = (payload.description or "").strip() or None
 
-    # Deterministic priority classification in FastAPI
-    det_priority, det_reason = classify_lead_priority(normalized_budget, normalized_desc, normalized_company)
+    # Deterministic priority classification in FastAPI (customers cannot choose their own priority)
+    det_priority, det_reason = classify_lead_priority(
+        budget=normalized_budget,
+        description=normalized_desc or "",
+        company=normalized_company,
+        service=normalized_service
+    )
 
     # Duplicate check
     existing_lead = db.query(Lead).filter(
@@ -95,6 +100,7 @@ def capture_lead_from_sheets(
         description=normalized_desc,
         priority=det_priority,
         priority_reason=det_reason,
+        priority_source="ai",
         email_status="Pending",
         email_subject=None,
         email_body=None,
@@ -175,6 +181,7 @@ async def handle_n8n_lead_webhook(payload: WebhookLeadPayload, db: Session = Dep
             description=payload.description,
             priority=ai_result.get("priority", "Medium"),
             priority_reason=ai_result.get("priority_reason"),
+            priority_source="ai",
             email_status="Pending",
             email_subject=ai_result.get("email_subject"),
             email_body=ai_result.get("email_body"),

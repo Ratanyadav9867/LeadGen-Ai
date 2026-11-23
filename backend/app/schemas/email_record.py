@@ -7,6 +7,8 @@ class AIResponsePayload(BaseModel):
     subject: str = Field(..., min_length=3, description="Personalized email subject")
     body: str = Field(..., min_length=10, description="Complete professional email body")
     summary: str = Field(..., min_length=3, description="Short summary of customer requirement")
+    priority: Optional[str] = Field(None, description="Optional AI-classified priority: High, Medium, Low")
+    priority_reason: Optional[str] = Field(None, description="Optional explanation for AI priority")
 
     @field_validator("subject", "body", "summary")
     @classmethod

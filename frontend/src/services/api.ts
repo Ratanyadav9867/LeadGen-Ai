@@ -59,9 +59,7 @@ export async function fetchLeads(filters?: { priority?: string; email_status?: s
 
     if (res.ok) {
       const liveData: Lead[] = await res.json();
-      if (liveData.length > 0) {
-        return { leads: liveData, isDemo: false, total: liveData.length };
-      }
+      return { leads: liveData, isDemo: false, total: liveData.length };
     }
   } catch (e) {
     // Fall back to explicitly labeled demo dataset

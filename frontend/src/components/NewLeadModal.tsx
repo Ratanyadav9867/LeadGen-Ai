@@ -17,7 +17,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, onS
   const [service, setService] = useState('AI Workflow Automation');
   const [budget, setBudget] = useState('$5,000 - $10,000');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<PriorityLevel>('Medium');
+  const [priorityOption, setPriorityOption] = useState<'Auto' | PriorityLevel>('Auto');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +31,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, onS
 
     setSubmitting(true);
     try {
+      const isManual = priorityOption !== 'Auto';
       await onSubmit({
         name: name.trim(),
         company: company.trim(),
@@ -39,11 +40,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, onS
         service,
         budget,
         description: description.trim() || null,
-        priority,
-        priority_reason: `Manually added lead with budget tier: ${budget}.`,
+        priority: isManual ? (priorityOption as PriorityLevel) : undefined as any,
+        priority_source: isManual ? 'manual' : 'ai',
+        priority_reason: isManual ? `Manually assigned as ${priorityOption} priority by administrator.` : undefined,
         email_status: 'Pending' as EmailDeliveryStatus,
-        email_subject: `Follow-up: ${service} for ${company}`,
-        email_body: `Dear ${name},\n\nThank you for inquiring about ${service}. We have received your project details and our team will follow up shortly.\n\nBest regards,\nLeadGen AI Team`,
+        email_subject: null,
+        email_body: null,
       });
       onClose();
       // Reset form
@@ -52,6 +54,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, onS
       setEmail('');
       setPhone('');
       setDescription('');
+      setPriorityOption('Auto');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit lead.');
     } finally {
@@ -150,22 +153,23 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, onS
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Priority Classification</label>
-          <div className="flex space-x-3">
-            {(['High', 'Medium', 'Low'] as PriorityLevel[]).map(p => (
-              <label key={p} className="flex items-center space-x-2 text-sm cursor-pointer">
-                <input
-                  type="radio"
-                  name="priority"
-                  value={p}
-                  checked={priority === p}
-                  onChange={() => setPriority(p)}
-                  className="text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-slate-700">{p}</span>
-              </label>
-            ))}
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-slate-700">Lead Priority (Optional Admin Override)</label>
+            <span className="text-[11px] text-indigo-600 font-medium">Default: Auto (AI-Assigned)</span>
           </div>
+          <select
+            value={priorityOption}
+            onChange={e => setPriorityOption(e.target.value as 'Auto' | PriorityLevel)}
+            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white"
+          >
+            <option value="Auto">Auto — Assign via Gemini AI Priority Engine (Recommended)</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Leave as Auto for automatic evaluation based on budget, urgency, and requirement.
+          </p>
         </div>
 
         <div>

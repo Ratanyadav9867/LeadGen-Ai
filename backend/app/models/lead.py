@@ -16,6 +16,7 @@ class Lead(Base):
     description = Column(Text, nullable=True)
     priority = Column(String(20), default="Medium")  # High, Medium, Low
     priority_reason = Column(Text, nullable=True)
+    priority_source = Column(String(20), default="ai")  # ai, manual
     email_status = Column(String(30), default="Pending")  # Pending, Draft, Sending, Sent, Failed, Delivery Unknown
     email_subject = Column(String(255), nullable=True)
     email_body = Column(Text, nullable=True)

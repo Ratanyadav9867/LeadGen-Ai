@@ -1,20 +1,31 @@
 import React from 'react';
 import type { PriorityLevel, EmailDeliveryStatus, IntegrationStatus } from '../types';
 
-export const PriorityBadge: React.FC<{ priority: PriorityLevel }> = ({ priority }) => {
+export const PriorityBadge: React.FC<{ priority: PriorityLevel; source?: string | null; showSource?: boolean }> = ({
+  priority,
+  source,
+  showSource = false,
+}) => {
+  const sourceText = source === 'manual' ? 'Manual' : source === 'ai' ? 'AI' : null;
+  const sourceTag = showSource && sourceText ? (
+    <span className="ml-1 opacity-75 font-normal text-[10px] tracking-tight">({sourceText})</span>
+  ) : null;
+
   switch (priority) {
     case 'High':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80">
           <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-rose-500"></span>
-          High Priority
+          <span>High Priority</span>
+          {sourceTag}
         </span>
       );
     case 'Medium':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
           <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-amber-500"></span>
-          Medium
+          <span>Medium</span>
+          {sourceTag}
         </span>
       );
     case 'Low':
@@ -22,7 +33,8 @@ export const PriorityBadge: React.FC<{ priority: PriorityLevel }> = ({ priority 
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/80">
           <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-slate-400"></span>
-          Low
+          <span>Low</span>
+          {sourceTag}
         </span>
       );
   }
